@@ -34,6 +34,10 @@ function apiChangeWebServerPort(req, res, next) {
     config.server.http_port = http_port;
 
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+    returnObject.data = {
+      https_port: config.server.https_port,
+      http_port: config.server.http_port
+    };
     returnObject.msg = 'Web server port changed, restart the server to apply changes';
     returnObject.code = ApiCode.OK;
     res.json(returnObject);
@@ -42,4 +46,46 @@ function apiChangeWebServerPort(req, res, next) {
   }
 }
 
-export { apiChangeWebServerPort };
+function apiSetWebServerProtocol(req, res, next) {
+  try {
+    const returnObject = createApiObj();
+    const { protocol } = req.body;
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+
+    config.server.protocol = protocol;
+
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+    returnObject.data = {
+      protocol: config.server.protocol
+    };
+    returnObject.msg = 'Web server protocol changed, restart the server to apply changes';
+    returnObject.code = ApiCode.OK;
+    res.json(returnObject);
+  } catch (error) {
+    next(error);
+  }
+}
+
+function apiGetWebServerInfo(req, res, next) {
+  try {
+    const returnObject = createApiObj();
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    if( config.server.https_port > 0 && config.server.http_port > 0) {
+      returnObject.data = {
+        protocol: config.server.protocol,
+        https_port: config.server.https_port,
+        http_port: config.server.http_port
+      };
+      returnObject.code = ApiCode.OK;
+    }else{
+      returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
+      returnObject.msg = 'Server configuration is missing required ports';
+    }
+
+    res.json(returnObject);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export { apiChangeWebServerPort, apiGetWebServerInfo, apiSetWebServerProtocol};

@@ -103,7 +103,7 @@ function apiAddWakeOnLan(req, res, next) {
     wolObj.items.push(req.body);
     fs.writeFileSync(WOL_PATH, JSON.stringify(wolObj, null, 2), UTF8);
     ret.msg = 'Add WOL item success';
-    ret.data = req.body;
+    ret.data = wolObj.items;
     res.json(ret);
   } catch (err) {
     next(err);
@@ -123,6 +123,7 @@ function apiDeleteWakeOnLan(req, res, next) {
     }
     wolObj.items.splice(index, 1);
     fs.writeFileSync(WOL_PATH, JSON.stringify(wolObj, null, 2), UTF8);
+    ret.data = wolObj.items;
     ret.msg = `Delete WOL ${mac} item success`;
     res.json(ret);
 

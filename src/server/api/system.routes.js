@@ -187,6 +187,32 @@ function apiGetDevice(req, res, next) {
   }
 }
 
+async function apiUpdateHostname(req, res, next){
+  try {
+    const { hostname } = req.body;
+    if (!hostname || typeof hostname !== 'string' || hostname.trim() === '') {
+      return res.status(400).json({ code: ApiCode.ERROR, message: 'Invalid hostname' });
+    }
+
+    await executeCMD(`hostnamectl set-hostname ${hostname}`);
+    const returnObject = createApiObj();
+    si.osInfo()
+    .then(osData => {
+      returnObject.code = ApiCode.OK;
+      returnObject.msg = 'Hostname updated successfully';
+      returnObject.data = {
+        hostname: osData.hostname || 'Unknown'
+      };
+      res.json(returnObject);
+    })
+    .catch(error => {
+      next(error);
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 const apiGetLogs = async (req, res, next) => {
   try {
     const { log } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
@@ -229,4 +255,6 @@ const apiGetLogs = async (req, res, next) => {
   }
 };
 
-export { apiReboot, apiGetDevice, apiGetSystemInfo, apiGetLogs };
+
+
+export { apiReboot, apiGetDevice, apiGetSystemInfo, apiGetLogs, apiUpdateHostname };
