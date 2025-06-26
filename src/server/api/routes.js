@@ -56,6 +56,7 @@ import {apiChangeWebServerPort, apiGetWebServerInfo, apiSetWebServerProtocol} fr
 import { apiGetHealthCheck, apiSetHealthCheck } from './health.route.js';
 import {apiDownloadFile} from './download.route.js';
 import {apiGetSerailDevice, apiSetSerailDevice} from './serial.route.js';
+import { apiGetACLState, apiAddList, apiDelete, apiChangeACLMode } from './access_control_list.route.js';
 
 /**
  * Array of route objects.
@@ -147,7 +148,10 @@ const routes = [
   { path: '/api/network/port', handler: apiChangeWebServerPort, method: 'post' },
   { path: '/api/network/protocol', handler: apiSetWebServerProtocol, method: 'post' },
   { path: '/api/network', handler: apiGetWebServerInfo, method: 'get' },
-  
+  { path: '/api/network/acl', handler: apiGetACLState, method: 'get' },
+  { path: '/api/network/acl', handler: apiAddList, method: 'post' },
+  { path: '/api/network/acl', handler: apiDelete, method: 'delete' },
+  { path: '/api/network/acl/mode', handler: apiChangeACLMode, method: 'post' },
   
   { path: '/api/wol', handler: apiWakeOnLan, method: 'post' },
   { path: '/api/wol/send', handler: apiSendWakeOnLanList, method: 'post' },

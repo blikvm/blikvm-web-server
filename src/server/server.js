@@ -35,7 +35,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import Mouse from './mouse.js';
 import Keyboard from './keyboard.js';
 import { ApiCode, createApiObj } from '../common/api.js';
-import { CONFIG_PATH, UTF8, JWT_SECRET } from '../common/constants.js';
+import { CONFIG_PATH, UTF8, JWT_SECRET,ACL_PATH } from '../common/constants.js';
 import { fileExists, processPing, getSystemInfo } from '../common/tool.js';
 import path from 'path';
 import { apiGetAuthState, apiLogin } from './api/login.route.js';
@@ -263,21 +263,53 @@ class HttpServer {
     };
   }
 
+  _ipBlacklistMiddleware(IP_BLACKLIST) {
+    return (req, res, next) => {
+      let clientIp = req.ip || req.connection.remoteAddress;
+      if (clientIp.startsWith('::ffff:')) {
+        clientIp = clientIp.replace('::ffff:', '');
+      }
+      if (IP_BLACKLIST.includes(clientIp)) {
+        logger.warn(`IP ${clientIp} is blacklisted and cannot access this server.`);
+        res.status(403).json({ error: 'Forbidden' });
+      } else {
+        next();
+      }
+    };
+  }
+
+  _extractIPList(config) {
+    const mode = config.mode; // 获取 mode 值
+    let ipList = [];
+  
+    if (mode === "allow") {
+      ipList = config.allowList.item.map((entry) => entry.ip); // 提取 allowList 中的 IP
+    } else if (mode === "block") {
+      ipList = config.blockList.item.map((entry) => entry.ip); // 提取 blockList 中的 IP
+    }
+  
+    return ipList;
+  }
+
   /**
    * Initializes the HTTP API server.
    * @private
    */
   _init() {
     const { server, video, msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    const acl_config =  JSON.parse(fs.readFileSync(ACL_PATH, UTF8));
     this._protocol = server.protocol;
-    this._httpsServerPort = server.https_port;
-    this._httpServerPort = server.http_port;
+    this._httpsServerPort = server.https_port || 443;
+    this._httpServerPort = server.http_port || 80;
     G_AuthState = server.auth;
     const app = express();
 
-    if (server.ipWhite.enable === true) {
-      const IP_WHITELIST = server.ipWhite.list;
+    if (acl_config.mode === "allow") {
+      const IP_WHITELIST = this._extractIPList(acl_config);
       app.use(this._ipWhitelistMiddleware(IP_WHITELIST));
+    }else if(acl_config.mode === "block") {
+      const IP_BLACKLIST = this._extractIPList(acl_config);
+      app.use(this._ipBlacklistMiddleware(IP_BLACKLIST));
     }
 
     app.use(
