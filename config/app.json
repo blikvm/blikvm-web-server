@@ -17,6 +17,9 @@
   "userManager": {
     "userFile": "./config/user.json"
   },
+  "switchManager": {
+    "file": "./config/switch.json"
+  },
   "server": {
     "protocol": "https",
     "https_port": 443,
@@ -40,23 +43,28 @@
     "port": 10004,
     "shell": "./lib/kvmd-video.sh",
     "bin": "./lib/pi/ustreamer.bin",
-    "fps": 20,
-    "quality": 100,
+    "fps": 30,
+    "quality": 80,
     "kbps": 2000,
     "gop": 30,
     "resolution": "1920x1080",
     "recordPath": "/mnt/tmp/record",
     "recordBin": "./lib/pi/ustreamer-dump"
   },
+  "janus": {
+    "bin": "./lib/pi/janus",
+    "configsFolder": "./lib/pi/janus_configs",
+    "pluginsFolder": "./lib/pi/janus_plugins"
+  },
   "kvmd": {
     "bin": "./lib/pi/kvmd-main"
   },
   "display": {
-    "mode": "interval",
+    "mode": "boot",
     "onBootTime": 3600,
-    "cycleInterval": 2800,
-    "displayTime": 290,
-    "secondaryIP": "wg0"
+    "cycleInterval": 60,
+    "displayTime": 10,
+    "secondaryIP": ""
   },
   "atx": {
     "controlSockFilePath": "/var/blikvm/atx.sock",
@@ -77,11 +85,12 @@
     "keymaps": "./lib/keymaps",
     "enable": true,
     "mouseMode": "dual",
-    "jigglerInterval": 40,
+    "mouseJiggler": false,
+    "jigglerInterval": 60,
     "pass_through": {
-      "enabled": true,
-      "mouse_sensitivity": 0.3,
-      "blockFlag": true
+      "enabled": false,
+      "blockFlag": false,
+      "mouse_sensitivity": 0.3
     },
     "shortcuts": {
       "Ctrl+Alt+Del": [
@@ -113,21 +122,13 @@
     "password": "admin",
     "interval": 15
   },
-  "switchManager": {
-    "file": "./config/switch.json"
-  },
   "fan": {
     "tempThreshold": 65
   },
   "healthCheck": {
-    "RAM": 0.5,
+    "RAM": 0.7,
     "storage": 0.7,
     "latency": 80,
     "temperature": 70
-  },
-  "janus": {
-    "bin": "./lib/pi/janus",
-    "configsFolder": "./lib/pi/janus_configs",
-    "pluginsFolder": "./lib/pi/janus_plugins"
   }
 }

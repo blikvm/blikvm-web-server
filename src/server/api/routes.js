@@ -35,7 +35,9 @@ import {
   apiGetUploadProgress,
   apiGetMakeImageProgress
 } from './msd.route.js';
-import { apiLogin, apiUpdateAccount, apiGetUserList, apiCreateAccount, apiDeleteAccount,apiGetAuthState, apiChangeAuthExpiration } from './login.route.js';
+import { apiLogin, apiUpdateAccount, apiGetUserList, apiCreateAccount, apiDeleteAccount,apiGetAuthState, apiChangeAuthExpiration,
+  apiEnabledAuth
+ } from './login.route.js';
 import {
   apiGetSwitch,
   apiSwitchActive,
@@ -130,6 +132,7 @@ const routes = [
 
   { path: '/api/logs', handler: apiGetLogs, method: 'post' },
 
+  { path: '/api/auth/', handler: apiEnabledAuth, method: 'post' },
   { path: '/api/auth/state', handler: apiGetAuthState, method: 'get' },
 
   { path: '/api/prometheus', handler: apiPrometheusEnable, method: 'post' },

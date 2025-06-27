@@ -351,7 +351,7 @@ class HttpServer {
     app.get('/api/auth/state', apiGetAuthState);
 
     const PrometheusMetricsObj = new PrometheusMetrics();
-    app.get('/api/metrics', BasicAuthObj, async (req, res) => {
+    app.get('/api/export/prometheus/metrics', BasicAuthObj, async (req, res) => {
       res.set('Content-Type', PrometheusMetricsObj._register.contentType);
       res.end(await PrometheusMetricsObj.getMetrics());
     });

@@ -271,6 +271,35 @@ function apiGetAuthState(req, res, next) {
   }
 } 
 
+function apiEnabledAuth(req, res, next) {
+  try {
+    const returnObject = createApiObj();
+    const { auth } = req.body;
+    if (auth === undefined) {
+      returnObject.msg = 'Auth parameter is required!';
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+      res.json(returnObject);
+      return;
+    }
+    if (typeof auth !== 'boolean') {
+      returnObject.msg = 'Auth must be a boolean value!';
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+      res.json(returnObject);
+      return;
+    }
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    returnObject.code = ApiCode.OK;
+    config.server.auth = auth;
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+    returnObject.data = {
+      auth: config.server.auth
+    };
+    res.json(returnObject);
+  } catch (err) {
+    next(err);
+  }
+}
+
 function apiChangeAuthExpiration(req, res, next) {
   try {
     const returnObject = createApiObj();
@@ -286,4 +315,4 @@ function apiChangeAuthExpiration(req, res, next) {
   }
 }
 
-export { apiLogin, apiUpdateAccount, apiGetUserList, apiCreateAccount, apiDeleteAccount, apiGetAuthState, apiChangeAuthExpiration };
+export { apiLogin, apiUpdateAccount, apiGetUserList, apiCreateAccount, apiDeleteAccount, apiGetAuthState, apiChangeAuthExpiration, apiEnabledAuth };
