@@ -37,7 +37,7 @@ function setSerialConfig(path, baudRate) {
 }
 
 const createSerialServer = (ws) => {
-  if (!serialPath || !serialBaudRate) {
+  if (!serialPath || !serialBaudRate || serialPath === 'none') {
     logger.error('Serial port path or baud rate not set. Please configure them first.');
     ws.send('*** Serial port path or baud rate not set. Please configure them first. ***\r\n');
     return;

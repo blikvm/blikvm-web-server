@@ -98,7 +98,7 @@ class PrometheusMetrics {
       const configObj = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
       configObj.prometheus.enabled = false;
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(configObj, null, 2), UTF8);
-      this._enabled = false;
+      this._enable = false;
     }
   }
 
