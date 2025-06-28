@@ -44,9 +44,9 @@ function apiReboot(req, res, next) {
 
 function readSerialNumber() {
   return new Promise((resolve, reject) => {
-    const hdType = getHardwareType();
+    const {hardwareType, streamerType} = getHardwareType();
     let filePath = '';
-    if (hdType === HardwareType.OrangePiCM4) {
+    if (hardwareType === HardwareType.OrangePiCM4) {
       filePath = '/proc/cpuinfo';
       fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
@@ -110,14 +110,16 @@ function apiGetSystemInfo(req, res, next) {
         // .reduce((total, partition) => total + partition.available, 0);
         const { server } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
 
-        const hdType = getHardwareType();
+        const {hardwareType, streamerType} = getHardwareType();
         let deviceVersion = '';
-        if (hdType === HardwareType.MangoPi) {
+        if (hardwareType === HardwareType.MangoPi) {
           deviceVersion = "BliKVM v4 Allwinner";
-        } else if (hdType === HardwareType.PI4B) {
+        } else if (hardwareType === HardwareType.PI4B) {
           deviceVersion = "BliKVM v3 HAT";
-        } else if (hdType === HardwareType.CM4) {
+        } else if (hardwareType === HardwareType.CM4) {
           deviceVersion = "BliKVM CM4";
+        } else if (hardwareType === HardwareType.OrangePiCM4) {
+          deviceVersion = "BliKVM ORANGE CM4";
         }
 
         returnObject.data = {
@@ -155,7 +157,6 @@ function apiGetSystemInfo(req, res, next) {
           },
           network: netDataFilter
         };
-        const hardwareType = getHardwareType();
         if (hardwareType === HardwareType.MangoPi) {
           returnObject.data.board.manufacturer = "MangoPi";
           returnObject.data.board.model = "MangoPi MCore";
@@ -165,6 +166,9 @@ function apiGetSystemInfo(req, res, next) {
           returnObject.data.board.cpu.processor = "H316 or H616";
         } else if (hardwareType === HardwareType.PI4B || hardwareType === HardwareType.CM4) {
           returnObject.data.board.type = systemData.raspberry.type;
+        } else if (hardwareType === HardwareType.OrangePiCM4) {
+          returnObject.data.board.serial = serialNumber;
+          returnObject.data.board.type  = "orangepi"
         }
 
         res.json(returnObject);
@@ -181,7 +185,7 @@ function apiGetDevice(req, res, next) {
   try {
     const returnObject = createApiObj();
     returnObject.code = ApiCode.OK;
-    const hardwareType = getHardwareType();
+    const {hardwareType, streamerType} = getHardwareType();
     let type = '';
     let deviceType = '';
     if (hardwareType === HardwareType.MangoPi) {
@@ -193,6 +197,9 @@ function apiGetDevice(req, res, next) {
     } else if (hardwareType === HardwareType.CM4) {
       type = 'pi';
       deviceType = "BliKVM CM4";
+    } else if (hardwareType === HardwareType.OrangePiCM4) {
+      type = 'orangepi';
+      deviceType = "BliKVM ORANGE CM4";
     }
     returnObject.data = {
       device: "KVM-over-IP",

@@ -22,7 +22,7 @@ writeTimeout: 10s
 writeQueueSize: 512
 # Maximum size of outgoing UDP packets.
 # This can be decreased to avoid fragmentation on networks with a low UDP MTU.
-udpMaxPayloadSize: 1472
+udpMaxPayloadSize: 1350
 
 # Command to run when a client connects to the server.
 # This is terminated with SIGINT when a client disconnects from the server.
@@ -350,6 +350,7 @@ webrtcEncryption: yes
 # openssl req -new -x509 -sha256 -key /home/orangepi/key.pem -out /home/orangepi/cert.pem -days 3650
 webrtcServerKey: /home/orangepi/key.pem
 # Path to the server certificate.
+
 webrtcServerCert: /home/orangepi/cert.pem
 # Value of the Access-Control-Allow-Origin header provided in every HTTP response.
 # This allows to play the WebRTC stream from an external website.

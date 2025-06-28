@@ -20,7 +20,7 @@
 *****************************************************************************/
 import fs from 'fs';
 import Logger from './log/logger.js';
-import { getHardwareType, getSreamerType } from './common/tool.js';
+import { getHardwareType } from './common/tool.js';
 import { HardwareType } from './common/enums.js';
 import HttpServer from './server/server.js';
 import Video from './modules/video/video.js';
@@ -73,11 +73,11 @@ const logger = new Logger();
 const httpServer = new HttpServer();
 
 httpServer.startService().then((result) => {
-  // startHid();
+  startHid();
   startWebServer();
   startVideo();
-  // const kvmdmain = new KVMDMain();
-  // kvmdmain.startService();
+  const kvmdmain = new KVMDMain();
+  kvmdmain.startService();
   
   // startSwitch();
   // const atx = new ATX();
@@ -86,9 +86,11 @@ httpServer.startService().then((result) => {
   //   //just for make sure jiggler is running
   //   const mouse = new Mouse();
   // }, 5000); // 5000 ms delay start ATX service
+
   //setTimeout(() => {
   // startHIDLoop();
   //   }, 4000);
+
 })
   .finally(() => {
     logger.info("All services have been started.");
@@ -123,15 +125,15 @@ function startHIDLoop() {
 }
 function startVideo() {
 
-  const hardwareType = getHardwareType();
-  const streamerType = getSreamerType();
+  const {hardwareType, streamerType} = getHardwareType();
+  // console.log("hardwareSysType: ", hardwareType, "streamerSysType", streamerType)
   const video = new Video(streamerType, hardwareType);
   video.startService();
 
 }
 
 function startWebServer() {
-  const hardwareType = getHardwareType();
+  const {hardwareType, streamerType} = getHardwareType();
   if (hardwareType === HardwareType.CM4 || hardwareType === HardwareType.PI4B) {
     const janus = new Janus();
     janus.startService();

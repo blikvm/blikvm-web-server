@@ -58,6 +58,7 @@ class Video extends ModuleApp {
     const { video } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     this._name = 'video';
     this._port = this.getVideoConfig().port;
+     console.log( "this._streamerType: ", this._streamerType)
     if (this._streamerType === StreamerType.Ustreamer) {
       this._bin = video.ustreamer.bin;
       let port = video.ustreamer.port;
@@ -106,6 +107,7 @@ class Video extends ModuleApp {
       let fps = video.gstreamer.fps;
       let kbps = video.gstreamer.kbps;
       let gop = video.gstreamer.gop;
+      console.log("this._hardwareType: ", this._hardwareType,"video.gstreamer.decode: ", video.gstreamer.decode, "kbps: ", kbps, "gop: ", gop);
       if (this._hardwareType === HardwareType.OrangePiCM4) {
         this._param = [`./lib/rk3566/test.py`, String(video.gstreamer.decode), String(kbps), String(gop)];
       }
@@ -149,6 +151,7 @@ class Video extends ModuleApp {
   }
 
   getVideoConfig() {
+    const {hardwareType, streamerType} = getHardwareType();
     const { video } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     const videoConfig = {
       ...(this._streamerType === StreamerType.Ustreamer && {
@@ -174,7 +177,7 @@ class Video extends ModuleApp {
         decode: video.gstreamer.decode
       })
     };
-    if (getHardwareType() === HardwareType.MangoPi) {
+    if (hardwareType === HardwareType.MangoPi) {
       videoConfig.support_resolution = this._v4_support_resolution;
     }
     return videoConfig;

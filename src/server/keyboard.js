@@ -52,6 +52,7 @@ class Keyboard extends HIDDevice {
    * @param {Event} event - The keyboard event.
    */
   handleEvent(event) {
+    console.log("keyborad: ", event);
     const keyboardData = this._packData(event);
     this.writeToQueue(keyboardData);
   }

@@ -82,8 +82,8 @@ class MJPEGStreamRecorder {
         logger.error('Error creating record directory');
         reject(new Error('Error creating record directory'));
       }
-
-      if(getHardwareType() === HardwareType.MangoPi){
+      const {hardwareType, streamerType} = getHardwareType();
+      if(hardwareType === HardwareType.MangoPi){
         this.recordMjepg();
       }else{
         const time = getCurrentTimestamp();
@@ -129,7 +129,8 @@ class MJPEGStreamRecorder {
         logger.warn('Not recording');
         resolve(); 
       }
-      if( getHardwareType() === HardwareType.MangoPi){
+      const {hardwareType, streamerType} = getHardwareType();
+      if( hardwareType === HardwareType.MangoPi){
         if (this.ffmpegProcess) {
           this.ffmpegProcess.on('exit', () => {
               logger.info('ffmpeg process exited');

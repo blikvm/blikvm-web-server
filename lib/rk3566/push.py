@@ -56,14 +56,14 @@ else: # args.codec == 'h264'
 if not video_encoder or not video_parser:
     print(f"Error: Failed to create {args.codec} encoder/parser elements. Check GStreamer installation.", flush=True)
     exit(1)
-# mpph265enc.set_property("qp-init", 50)
-# mpph265enc.set_property("qp-max", 51)
-# mpph265enc.set_property("qp-min", 30)
-video_encoder.set_property("rc-mode", 1)
-# mpph265enc.set_property("gop", 60)
-# mpph265enc.set_property("bps-max", 3000000)
-video_encoder.set_property("gop", args.gop) # 使用解析到的 gop 参数
-video_encoder.set_property("bps", args.bitrate) # 设置目标比特率
+video_encoder.set_property("qp-init", 50)
+video_encoder.set_property("qp-max", 51)
+video_encoder.set_property("qp-min", 30)
+video_encoder.set_property("rc-mode", 0)
+video_encoder.set_property("gop", args.gop)
+video_encoder.set_property("bps-max", args.bitrate*1000)
+# video_encoder.set_property("gop", args.gop) # 使用解析到的 gop 参数
+# video_encoder.set_property("bps", args.bitrate) # 设置目标比特率
 
 queue2 = Gst.ElementFactory.make("queue", "queue2")
 # h265parse = Gst.ElementFactory.make("h265parse", "h265parse")

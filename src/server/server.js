@@ -330,7 +330,7 @@ class HttpServer {
 
     // 👇 加在 app.use('/video', ...) 后面即可
     app.use('/gstreamer', createProxyMiddleware({
-      target: 'https://127.0.0.1:8889', // MediaMTX监听端口
+      target: 'https://127.0.0.1:8889',
       changeOrigin: true,
       secure: false,
     }));

@@ -58,20 +58,20 @@
       "bin": "python3",
       "fps": 50,
       "quality": 80,
-      "kbps": 6900,
-      "gop": 30,
+      "kbps": 3000,
+      "gop": 60,
       "resolution": "1920x1080",
       "decode": "h265"
     }
   },
   "kvmd": {
-    "bin": "./lib/pi/kvmd-main"
+    "bin": "./lib/rk3566/kvmd-main"
   },
   "display": {
     "mode": "interval",
     "onBootTime": 3600,
     "cycleInterval": 60,
-    "displayTime": 10,
+    "displayTime": 20,
     "secondaryIP": "wg0"
   },
   "atx": {
@@ -148,7 +148,7 @@
   "Mediamtx": {
     "bin": "./lib/rk3566/mediamtx",
     "MediamtxCfg": "./lib/rk3566/mediamtx.yml"
-  }
+  },
   "codeOfConduct": {
     "isActive": true,
     "url": ""

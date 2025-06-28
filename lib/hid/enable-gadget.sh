@@ -52,7 +52,7 @@ MSD_FILE="none.txt"
 
 # 需要后面去编译设备树目前是临时解决方案 需要先手动执行一下 
 #rm -rf /sys/kernel/config/usb_gadget/rockchip
-echo peripheral > /sys/devices/platform/fe8a0000.usb2-phy/otg_mode
+# echo peripheral > /sys/devices/platform/fe8a0000.usb2-phy/otg_mode
 
 modprobe libcomposite
 

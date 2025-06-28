@@ -134,10 +134,6 @@ function generateSecret(length) {
   return password;
 }
 
-function getSreamerType() {
-  return streamerSysType;
-}
-
 /**
  * Retrieves the hardware type based on the device model.
  * @returns {enmus} The hardware type, see HardwareType.
@@ -164,7 +160,11 @@ function getHardwareType() {
       streamerSysType = StreamerType.Gstreamer;
     }
   }
-  return hardwareSysType;
+  // console.log("hardwareSysType: ", hardwareSysType, "streamerSysType", streamerSysType)
+ return {
+    hardwareType: hardwareSysType,
+    streamerType: streamerSysType
+  };
 }
 
 function executeScriptAtPath(scriptPath, args = []) {
@@ -388,7 +388,6 @@ export {
   generateUniqueCode,
   generateSecret,
   getHardwareType,
-  getSreamerType,
   executeScriptAtPath,
   isDeviceFile,
   executeCMD,

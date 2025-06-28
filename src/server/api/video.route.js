@@ -24,7 +24,7 @@ import { CONFIG_PATH, UTF8 } from '../../common/constants.js';
 import { ApiCode, createApiObj } from '../../common/api.js';
 import Logger from '../../log/logger.js';
 import { ModuleState } from '../../common/enums.js';
-import { getHardwareType, getSreamerType, executeCMD } from '../../common/tool.js';
+import { getHardwareType } from '../../common/tool.js';
 import { HardwareType } from '../../common/enums.js';
 import { execSync } from 'child_process';
 
@@ -41,8 +41,7 @@ function apiVideoControl(req, res, next) {
   try {
     const ret = createApiObj();
     const action = req.query.action;
-    const hardwareType = getHardwareType();
-    const streamerType = getSreamerType();
+    const {hardwareType, streamerType} = getHardwareType();
     const video = new Video(streamerType, hardwareType);
     if (action === 'start') {
       video
@@ -84,8 +83,8 @@ function apiVideoControl(req, res, next) {
 
 function apiDecodeChange(req, res, next) {
   const ret = createApiObj();
-
-  if (getHardwareType() !== HardwareType.OrangePiCM4) {
+  const {hardwareType, streamerType} = getHardwareType();
+  if (hardwareType !== HardwareType.OrangePiCM4) {
     ret.code = ApiCode.INTERNAL_SERVER_ERROR;
     ret.msg = 'Hardware not supported change decode';
     res.json(ret);
@@ -93,8 +92,6 @@ function apiDecodeChange(req, res, next) {
   }
 
   const {decode} = req.body;
-  const hardwareType = getHardwareType();
-  const streamerType = getSreamerType();
   const video = new Video(streamerType, hardwareType);
   video.setDecodeParam(decode);
   console.log("video state : ", video.getstate(), "set decode : ", decode);
@@ -135,8 +132,8 @@ function apiDecodeChange(req, res, next) {
 
 function apiResolutionChange(req, res, next) {
   const ret = createApiObj();
-
-  if (getHardwareType() !== HardwareType.MangoPi) {
+  const {hardwareType, streamerType} = getHardwareType();
+  if (hardwareType !== HardwareType.MangoPi) {
     ret.code = ApiCode.INTERNAL_SERVER_ERROR;
     ret.msg = 'Hardware not supported change resolution';
     res.json(ret);
@@ -144,8 +141,6 @@ function apiResolutionChange(req, res, next) {
   }
 
   const resolution = req.query.resolution;
-  const hardwareType = getHardwareType();
-  const streamerType = getSreamerType();
   const video = new Video(streamerType, hardwareType);
   video.setResolution(resolution);
 
@@ -187,8 +182,7 @@ function apiResolutionChange(req, res, next) {
 function apiVideoConfig(req, res, next) {
   try {
     const ret = createApiObj();
-    const hardwareType = getHardwareType();
-    const streamerType = getSreamerType();
+    const {hardwareType, streamerType} = getHardwareType();
     const video = new Video(streamerType, hardwareType);
     const action = req.query.action;
     if (action === 'get') {
@@ -209,8 +203,7 @@ function apiVideoConfig(req, res, next) {
 
 function apiGetVideoState(req, res, next) {
   const ret = createApiObj();
-  const hardwareType = getHardwareType();
-  const streamerType = getSreamerType();
+  const {hardwareType, streamerType} = getHardwareType();
   const video = new Video(streamerType, hardwareType);
   const mode = video.getVideoConfig().decode;
   console.log('mode:', mode);
@@ -278,8 +271,7 @@ function apiGetVideoState(req, res, next) {
 
 async function wsGetVideoState() {
   try {
-    const hardwareType = getHardwareType();
-    const streamerType = getSreamerType();
+    const {hardwareType, streamerType} = getHardwareType();
     const video = new Video(streamerType, hardwareType);
     const mode = video.getVideoConfig().decode;
     if (video.getstate() !== ModuleState.RUNNING) {
@@ -401,8 +393,7 @@ function apiRecording(req, res, next) {
 
 async function apiSnapshot(req, res, next) {
   try {
-    const hardwareType = getHardwareType();
-    const streamerType = getSreamerType();
+    const {hardwareType, streamerType} = getHardwareType();
     const video = new Video(streamerType, hardwareType);
     const imageBuffer = await video.getSnapshotImage(next);
     if (imageBuffer) {
