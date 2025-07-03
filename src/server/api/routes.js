@@ -19,7 +19,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
 *****************************************************************************/
-import { apiATXClick, apiATXState } from './atx.route.js';
+import { apiATXClick, apiATXState,apiActiveState, apiActiveSet} from './atx.route.js';
 import state from './state.route.js';
 import { apiVideoControl, apiVideoConfig, apiGetVideoState, apiRecording, apiResolutionChange, apiSnapshot, apiEdidInfo,  apiEdidSet } from './video.route.js';
 import KVMDMain from './kvmd_main.route.js';
@@ -69,6 +69,8 @@ import { apiGetACLState, apiAddList, apiDelete, apiChangeACLMode } from './acces
  * @private
  */
 const routes = [
+  { path: '/api/atx', handler: apiActiveState, method: 'get' },
+  { path: '/api/atx', handler: apiActiveSet, method: 'post' },
   { path: '/api/atx/state', handler: apiATXState, method: 'post' },
   { path: '/api/atx/click', handler: apiATXClick, method: 'post' },
   { path: '/api/state', handler: state, method: 'post' },

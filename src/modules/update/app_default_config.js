@@ -86,6 +86,7 @@ const defaultConfig = {
       "secondaryIP": ""
     },
     "atx": {
+      "isActive": true,
       "controlSockFilePath": "/var/blikvm/atx.sock",
       "stateSockFilePath": "/dev/shm/blikvm/atx",
       "power_on_delay": 500,

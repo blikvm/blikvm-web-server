@@ -165,6 +165,15 @@ class AppConfigUpdate {
     return data;
   }
 
+  upgradeV6toV7(data){
+    if(data.atx.isActive === undefined ){
+      data.atx.isActive = true; // 默认启用ATX功能
+    }
+    data.version = 7;
+    return data;
+  }
+
+
   // 通用升级函数，检查当前版本并逐步升级
   upgradeData(data) {
     if (data.version === 1) {
@@ -186,6 +195,10 @@ class AppConfigUpdate {
     if( data.version === 5 ){
       logger.info('Update from version 5 to version 6...');
       data = this.upgradeV5toV6(data);
+    }
+    if( data.version === 6 ){
+      logger.info('Update from version 6 to version 7...');
+      data = this.upgradeV6toV7(data);
     }
     return data;
   }

@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "log": {
     "console": {
       "enabled": true,
@@ -46,7 +46,7 @@
     "fps": 30,
     "quality": 80,
     "kbps": 2000,
-    "gop": 30,
+    "gop": 1,
     "resolution": "1920x1080",
     "recordPath": "/mnt/tmp/record",
     "recordBin": "./lib/pi/ustreamer-dump"
@@ -70,7 +70,8 @@
     "controlSockFilePath": "/var/blikvm/atx.sock",
     "stateSockFilePath": "/dev/shm/blikvm/atx",
     "power_on_delay": 500,
-    "power_off_delay": 5000
+    "power_off_delay": 5000,
+    "isActive": false
   },
   "msd": {
     "enable": true,
@@ -86,7 +87,7 @@
     "enable": true,
     "mouseMode": "dual",
     "mouseJiggler": false,
-    "jigglerInterval": 60,
+    "jigglerInterval": 20,
     "pass_through": {
       "enabled": false,
       "blockFlag": false,
