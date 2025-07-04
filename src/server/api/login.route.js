@@ -93,10 +93,12 @@ async function apiCreateAccount(req, res, next) {
 function apiGetUserList(req, res, next) {
   try {
     const returnObject = createApiObj();
-    const users = getUsers();
-    const usernames = users.map(user => user.username);
+    
+    const { userManager } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    const userFile =  JSON.parse(fs.readFileSync(userManager.userFile, UTF8));
+
     returnObject.code = ApiCode.OK;
-    returnObject.data = usernames;
+    returnObject.data = userFile;
     res.json(returnObject);
   } catch (err) {
     next(err);
