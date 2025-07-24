@@ -188,7 +188,8 @@ async function  apiLogin(req, res, next) {
     returnObject.code = ApiCode.OK;
     returnObject.data = {
       token,
-      username
+      username,
+      role: user.role, // 用户角色
     };
     res.json(returnObject);
   } catch (err) {
@@ -297,6 +298,11 @@ function apiEnabledAuth(req, res, next) {
       auth: config.server.auth
     };
     res.json(returnObject);
+    if (auth === true) {
+      setTimeout(() => {
+        process.exit(0);
+      }, 1000); 
+    }
   } catch (err) {
     next(err);
   }

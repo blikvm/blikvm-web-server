@@ -53,6 +53,8 @@ class HID extends Module {
     this._enable = hid.enable;
   }
 
+  // mouseMode: dual relative absolute 
+  // msdEnable: enable disable
   startService(mouseMode, msdEnable) {
     return new Promise((resolve, reject) => {
       if (!isDeviceFile(this._hidkeyboard) && !isDeviceFile(this._hidmouse)) {
@@ -98,20 +100,16 @@ class HID extends Module {
     });
   }
 
-  changeMode(absolute) {
-    const absoluteBool = absolute === 'true';
+  changeMode(mouseMode) {
     return new Promise((resolve, reject) => {
       const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-      if (config.hid.absoluteMode === absoluteBool) {
-        resolve(`the absolute is alreadly ${config.hid.absoluteMode}`);
-      }
       if (this._state === ModuleState.RUNNING) {
         this.closeService()
           .then(() => {
-            return this.startService(absolute);
+            return this.startService(mouseMode, config.msd.enable ? 'enable' : 'disable');
           })
           .then(() => {
-            config.hid.absoluteMode = absoluteBool;
+            config.hid.mouseMode = mouseMode;
             config.hid.enable = true;
             fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
             resolve(`${this._name} mode changed successfully, need reboot your kvm`);
@@ -121,9 +119,9 @@ class HID extends Module {
             reject(err);
           });
       } else {
-        this.startService(absolute)
+        this.startService(mouseMode, config.msd.enable ? 'enable' : 'disable')
           .then(() => {
-            config.hid.absoluteMode = absoluteBool;
+            config.hid.mouseMode = mouseMode;
             config.hid.enable = true;
             fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
             resolve(`${this._name} mode changed successfully, need reboot your kvm`);

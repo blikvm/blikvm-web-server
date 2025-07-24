@@ -88,13 +88,20 @@ function apiEnableHID(req, res, next) {
 function apiChangeMode(req, res, next) {
   try {
     const returnObject = createApiObj();
-    const absolute = req.query.absolute;
+    const mouseMode = req.body.mouseMode;
     const hid = new HID();
+    const mouse = new Mouse();
+    const keyboard = new Keyboard();
+    mouse.close();
+    keyboard.close();
     hid
-      .changeMode(absolute)
+      .changeMode(mouseMode)
       .then(() => {
         returnObject.code = ApiCode.OK;
-        returnObject.msg = `hid change mode to absolute:${absolute} successful`;
+        returnObject.msg = `hid change mode to mouseMode:${mouseMode} successful`;
+        mouse._init();
+        mouse.open();
+        keyboard.open();  
         res.json(returnObject);
       })
       .catch((err) => {
