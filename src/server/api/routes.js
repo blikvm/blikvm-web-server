@@ -59,6 +59,7 @@ import { apiGetHealthCheck, apiSetHealthCheck } from './health.route.js';
 import {apiDownloadFile} from './download.route.js';
 import {apiGetSerailDevice, apiSetSerailDevice} from './serial.route.js';
 import { apiGetACLState, apiAddList, apiDelete, apiChangeACLMode } from './access_control_list.route.js';
+import { apiUpdateUrlConduct, apiActiveConduct, apiGetConducState } from './code_of_conduct.js';
 
 /**
  * Array of route objects.
@@ -171,6 +172,10 @@ const routes = [
 
   { path: '/api/serial', handler: apiSetSerailDevice, method: 'post' },
   { path: '/api/serial', handler: apiGetSerailDevice, method: 'get' },
+
+  { path: '/api/conduct/update', handler: apiUpdateUrlConduct, method: 'post' },
+  { path: '/api/conduct/active', handler: apiActiveConduct, method: 'post' },
+  { path: '/api/conduct', handler: apiGetConducState, method: 'get' },
   
 ];
 

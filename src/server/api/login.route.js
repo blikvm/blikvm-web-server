@@ -263,10 +263,12 @@ async function apiUpdateAccount(req, res, next) {
 function apiGetAuthState(req, res, next) {
   try {
     const returnObject = createApiObj();
-    const { server } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     returnObject.code = ApiCode.OK;
     returnObject.data = {
-      auth: server.auth
+      auth: config.server.auth,
+      codeOfConductIsActivve: config.codeOfConduct.isActive,
+      codeOfConductUrl: config.codeOfConduct.url
     };
     res.json(returnObject);
   } catch (err) {

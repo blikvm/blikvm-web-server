@@ -169,6 +169,12 @@ class AppConfigUpdate {
     if(data.atx.isActive === undefined ){
       data.atx.isActive = true; // 默认启用ATX功能
     }
+    if( data.codeOfConduct === undefined ){
+      data.codeOfConduct = {
+        isActive: true,
+        url: ''
+      };
+    }
     data.version = 7;
     return data;
   }

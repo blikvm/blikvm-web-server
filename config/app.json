@@ -32,7 +32,7 @@
     "configPath": "/usr/bin/blikvm/package.json",
     "sshUser": "blikvm",
     "sshPassword": "blikvm",
-    "auth": false,
+    "auth": true,
     "authExpiration": 12,
     "ipWhite": {
       "enabled": false,
@@ -44,9 +44,9 @@
     "shell": "./lib/kvmd-video.sh",
     "bin": "./lib/pi/ustreamer.bin",
     "fps": 30,
-    "quality": 80,
+    "quality": 10,
     "kbps": 2000,
-    "gop": 1,
+    "gop": 60,
     "resolution": "1920x1080",
     "recordPath": "/mnt/tmp/record",
     "recordBin": "./lib/pi/ustreamer-dump"
@@ -60,18 +60,18 @@
     "bin": "./lib/pi/kvmd-main"
   },
   "display": {
-    "mode": "boot",
+    "mode": "interval",
     "onBootTime": 3600,
     "cycleInterval": 60,
     "displayTime": 10,
-    "secondaryIP": ""
+    "secondaryIP": "wg0"
   },
   "atx": {
     "controlSockFilePath": "/var/blikvm/atx.sock",
     "stateSockFilePath": "/dev/shm/blikvm/atx",
     "power_on_delay": 500,
     "power_off_delay": 5000,
-    "isActive": false
+    "isActive": true
   },
   "msd": {
     "enable": true,
@@ -124,12 +124,16 @@
     "interval": 15
   },
   "fan": {
-    "tempThreshold": 65
+    "tempThreshold": 68
   },
   "healthCheck": {
-    "RAM": 0.7,
+    "RAM": 0.8,
     "storage": 0.7,
     "latency": 80,
-    "temperature": 70
+    "temperature": 65
+  },
+  "codeOfConduct": {
+    "isActive": true,
+    "url": ""
   }
 }
