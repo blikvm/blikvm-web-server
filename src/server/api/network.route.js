@@ -41,6 +41,9 @@ function apiChangeWebServerPort(req, res, next) {
     returnObject.msg = 'Web server port changed, restart the server to apply changes';
     returnObject.code = ApiCode.OK;
     res.json(returnObject);
+    setTimeout(() => {
+      process.exit(0);
+    }, 3000);
   } catch (error) {
     next(error);
   }
@@ -61,6 +64,9 @@ function apiSetWebServerProtocol(req, res, next) {
     returnObject.msg = 'Web server protocol changed, restart the server to apply changes';
     returnObject.code = ApiCode.OK;
     res.json(returnObject);
+    setTimeout(() => {
+      process.exit(0);
+    }, 3000);
   } catch (error) {
     next(error);
   }
