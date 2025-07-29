@@ -101,7 +101,7 @@ function apiResolutionChange(req, res, next) {
         return video.startService(); 
       })
       .then(() => {
-        ret.code = ApiCode.SUCCESS;
+        ret.code = ApiCode.OK;
         ret.msg = 'Resolution changed and service restarted successfully';
         res.json(ret);
       })
@@ -115,7 +115,7 @@ function apiResolutionChange(req, res, next) {
     video
       .startService()
       .then(() => {
-        ret.code = ApiCode.SUCCESS;
+        ret.code = ApiCode.OK;
         ret.msg = 'Service started with new resolution successfully';
         res.json(ret);
       })
