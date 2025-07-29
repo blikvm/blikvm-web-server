@@ -293,6 +293,12 @@ function apiEnabledAuth(req, res, next) {
       return;
     }
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    if(config.server.auth === auth) {
+      returnObject.msg = `Auth is already ${auth ? 'enabled' : 'disabled'}`;
+      returnObject.code = ApiCode.OK;
+      res.json(returnObject);
+      return;
+    }
     returnObject.code = ApiCode.OK;
     config.server.auth = auth;
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
