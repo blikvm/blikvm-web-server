@@ -23,6 +23,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 dotenv.config();
 
+export const SERVER_VERSION = '1.0.1';
 export const CONFIG_DIR = 'config';
 export const CONFIG_PATH = process.argv[2] ? process.argv[2] : 'config/app.json';
 export const SWITCH_PATH = process.argv[3] ? process.argv[3] : 'config/switch.json';

@@ -577,7 +577,7 @@ class HttpServer {
    * @private
    */
   _httpRecorderMiddle(req, res, next) {
-    if (req.url === '/main' || req.url === '/terminal') {
+    if (req.url === '/matrix' || req.url === '/terminal') {
       next();
       return;
     }
@@ -604,7 +604,7 @@ class HttpServer {
    * @private
    */
   _httpVerityMiddle(req, res, next) {
-    if (req.url === '/main' || req.url === '/terminal') {
+    if (req.url === '/matrix' || req.url === '/terminal') {
       next();
       return;
     }

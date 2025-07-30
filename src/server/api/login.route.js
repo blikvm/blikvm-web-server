@@ -23,7 +23,7 @@ import { ApiCode, createApiObj } from '../../common/api.js';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import bcrypt from 'bcrypt';
-import { CONFIG_PATH, JWT_SECRET, UTF8 } from '../../common/constants.js';
+import { CONFIG_PATH, JWT_SECRET, UTF8 , SERVER_VERSION} from '../../common/constants.js';
 import Logger from '../../log/logger.js';
 import jwt from 'jsonwebtoken';
 import TwoFactorAuth from '../../modules/two_factor_auth.js';
@@ -266,6 +266,7 @@ function apiGetAuthState(req, res, next) {
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     returnObject.code = ApiCode.OK;
     returnObject.data = {
+      serverVersion: SERVER_VERSION,
       auth: config.server.auth,
       codeOfConductIsActivve: config.codeOfConduct.isActive,
       codeOfConductUrl: config.codeOfConduct.url
