@@ -230,7 +230,7 @@ function apiHIDLoopStatus(req, res, next) {
     returnObject.msg = '';
     returnObject.data = {
       enabled: hid.pass_through.enabled,
-      blockFlag: flag
+      wheelReverse: hid.pass_through.wheelReverse,
     };
     res.json(returnObject);
   }catch(err){
@@ -272,7 +272,37 @@ function apiHIDLoopActive(req, res, next) {
   }
 }
 
+function apiHIDLoopUpdate(req, res, next) {
+  try{
+    const { wheelReverse } = req.body; 
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    if( config.hid.pass_through.wheelReverse === wheelReverse ){
+      const returnObject = createApiObj();
+      returnObject.code = ApiCode.OK;
+      returnObject.msg = `HID loop wheel reverse is already ${wheelReverse ? 'enabled' : 'disabled'}`;
+      returnObject.data = {
+        wheelReverse: config.hid.pass_through.wheelReverse
+      };
+      res.json(returnObject);
+      return;
+    }
+    InputEventListener.setWheelReverse(wheelReverse );
+    config.hid.pass_through.wheelReverse = wheelReverse;
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+    const returnObject = createApiObj();
+    returnObject.code = ApiCode.OK;
+    returnObject.msg = '';
+    returnObject.data = {
+      wheelReverse: config.hid.pass_through.wheelReverse
+    };
+    res.json(returnObject);
+  }catch(err){
+    next(err);
+  }
+}
+
+
 
 export { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopStatus,apiHIDLoopBlock,apiKeyboardPasteLanguage,
-  apiHIDLoopActive
+  apiHIDLoopActive, apiHIDLoopUpdate
  };

@@ -87,8 +87,9 @@ httpServer.startService().then((result) => {
     //just for make sure jiggler is running
     const mouse = new Mouse();
   }, 5000); // 5000 ms delay start ATX service
-
-  startHIDLoop();
+  setTimeout(() => {
+    startHIDLoop();
+  }, 4000);
 })
 .finally(() => {
   logger.info("All services have been started.");

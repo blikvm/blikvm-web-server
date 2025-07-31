@@ -18,7 +18,7 @@ function getHardwareTypeForConfig() {
 const hardware = getHardwareTypeForConfig();
 
 const defaultConfig = {
-    "version": 7,
+    "version": 8,
     "log": {
       "console": {
         "enabled": true,
@@ -109,7 +109,7 @@ const defaultConfig = {
       "jigglerInterval": 60,
       "pass_through": {
         "enabled": false,
-        "blockFlag": false,
+        "wheelReverse": false,
         "mouse_sensitivity": 0.3
       },
       "shortcuts": {

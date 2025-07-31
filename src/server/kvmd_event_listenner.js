@@ -170,6 +170,7 @@ const getFilteredEventDevices = () => {
 class InputEventListener {
 
   static blockFlag = false;
+  static wheelReverse = 1;
 
   constructor() {
       this.reader = new EvdevReader();
@@ -297,7 +298,7 @@ class InputEventListener {
       buttons: this.mouse_button,
       relativeX: relativeX,
       relativeY: relativeY, 
-      verticalWheelDelta: verticalWheelDelta,
+      verticalWheelDelta: InputEventListener.wheelReverse * verticalWheelDelta,
       horizontalWheelDelta: 0,
       isAbsoluteMode: false,
       sensitivity: this.mouse_sensitivity
@@ -325,6 +326,16 @@ class InputEventListener {
       logger.info(`InputEventListener blockFlag set to ${flag}`);
     }else{
       logger.warn(`InputEventListener blockFlag already set to ${flag}`);
+    }
+  }
+
+  static setWheelReverse(value) {
+    const reverse = value ? -1 : 1;
+    if(InputEventListener.wheelReverse !== reverse) {
+      InputEventListener.wheelReverse = reverse;
+      logger.info(`InputEventListener wheelReverse set to ${reverse}`);
+    }else{
+      logger.warn(`InputEventListener wheelReverse already set to ${reverse}`);
     }
   }
 

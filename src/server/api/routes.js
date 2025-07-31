@@ -23,7 +23,7 @@ import { apiATXClick, apiATXState,apiActiveState, apiActiveSet} from './atx.rout
 import state from './state.route.js';
 import { apiVideoControl, apiVideoConfig, apiGetVideoState, apiRecording, apiResolutionChange, apiSnapshot, apiEdidInfo,  apiEdidSet } from './video.route.js';
 import KVMDMain from './kvmd_main.route.js';
-import { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopBlock, apiHIDLoopStatus, apiKeyboardPasteLanguage, apiHIDLoopActive } from './hid.route.js';
+import { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopUpdate, apiHIDLoopStatus, apiKeyboardPasteLanguage, apiHIDLoopActive } from './hid.route.js';
 import {
   apiUpload,
   apiCreateMSD,
@@ -96,7 +96,7 @@ const routes = [
   { path: '/api/hid/shortcuts/config', handler: apiGetShortcutsConfig, method: 'post' },
   { path: '/api/mouse/event', handler: apiMouseEvent, method: 'post' },
   { path: '/api/mouse/jiggler', handler: apiMouseJiggler, method: 'post' },
-  { path: '/api/hid/loop/block', handler: apiHIDLoopBlock, method: 'post' },
+  { path: '/api/hid/loop/update', handler: apiHIDLoopUpdate, method: 'post' },
   { path: '/api/hid/loop', handler: apiHIDLoopStatus, method: 'get' },
   { path: '/api/hid/loop', handler: apiHIDLoopActive, method: 'post' },
   

@@ -142,7 +142,7 @@ class HID extends Module {
       mouseMode: hid.mouseMode,
       mouseJiggler: hid.mouseJiggler,
       jigglerInterval: hid.jigglerInterval,
-      passThrough: hid.pass_through.enabled
+      passThrough: hid.pass_through.enabled,
     };
   }
 }
