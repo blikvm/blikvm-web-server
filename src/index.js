@@ -36,7 +36,7 @@ import AppConfigUpdate from './modules/update/app_update.js';
 import SwitchConfigUpdate from './modules/update/switch_update.js';
 import WOLConfigUpdate from './modules/update/wake_on_lane_update.js';
 import ACLConfigUpdate from './modules/update/access_control_list_update.js';
-import {InputEventListener, getFilteredEventDevices} from './server/kvmd_event_listenner.js';
+import { startHIDPassthroughListening } from './server/kvmd_event_listenner.js';
 import Mouse from './server/mouse.js';
 
 process.env.UV_THREADPOOL_SIZE = 8;
@@ -124,9 +124,5 @@ function startHIDLoop() {
   if(hid.pass_through.enabled !== true){
     return;
   }
-  const eventDevices = getFilteredEventDevices();
-  eventDevices.forEach(device => {
-    const inputEventListener = new InputEventListener();
-    inputEventListener.open(`/dev/input/${device.event}`);
-  });
+  startHIDPassthroughListening();
 }

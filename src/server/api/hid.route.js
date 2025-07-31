@@ -25,7 +25,10 @@ import Keyboard from '../keyboard.js';
 import Mouse from '../mouse.js';
 import { CONFIG_PATH, UTF8 } from '../../common/constants.js';
 import { getSupportLang } from '../../modules/hid/keysym.js';
-import {InputEventListener} from '../kvmd_event_listenner.js';
+import {InputEventListener, 
+  startHIDPassthroughListening, stopHIDPassthroughListening
+} from '../kvmd_event_listenner.js';
+
 import Logger from '../../log/logger.js';
 
 const logger = new Logger();
@@ -236,4 +239,40 @@ function apiHIDLoopStatus(req, res, next) {
 }
 
 
-export { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopStatus,apiHIDLoopBlock,apiKeyboardPasteLanguage };
+function apiHIDLoopActive(req, res, next) {
+  try{
+    const { isActive } = req.body; 
+    const returnObject = createApiObj();
+    returnObject.code = ApiCode.OK;
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    if( config.hid.pass_through.enabled === isActive ){
+      returnObject.msg = `HID loop is already ${isActive ? 'enabled' : 'disabled'}`;
+      returnObject.data = {
+        enabled: config.hid.pass_through.enabled,
+      };
+      res.json(returnObject);
+      return;
+    }
+    if(isActive === true) { 
+      startHIDPassthroughListening();
+        config.hid.pass_through.enabled = true;
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+    }else{
+      stopHIDPassthroughListening();
+        config.hid.pass_through.enabled = false;
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+    }
+    returnObject.msg = ' HID loop active status changed successfully';
+    returnObject.data = {
+      enabled: config.hid.pass_through.enabled
+    };
+    res.json(returnObject);
+  }catch(err){
+    next(err);
+  }
+}
+
+
+export { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopStatus,apiHIDLoopBlock,apiKeyboardPasteLanguage,
+  apiHIDLoopActive
+ };

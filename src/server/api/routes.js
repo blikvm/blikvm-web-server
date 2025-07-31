@@ -23,7 +23,7 @@ import { apiATXClick, apiATXState,apiActiveState, apiActiveSet} from './atx.rout
 import state from './state.route.js';
 import { apiVideoControl, apiVideoConfig, apiGetVideoState, apiRecording, apiResolutionChange, apiSnapshot, apiEdidInfo,  apiEdidSet } from './video.route.js';
 import KVMDMain from './kvmd_main.route.js';
-import { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopBlock, apiHIDLoopStatus, apiKeyboardPasteLanguage } from './hid.route.js';
+import { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopBlock, apiHIDLoopStatus, apiKeyboardPasteLanguage, apiHIDLoopActive } from './hid.route.js';
 import {
   apiUpload,
   apiCreateMSD,
@@ -98,6 +98,8 @@ const routes = [
   { path: '/api/mouse/jiggler', handler: apiMouseJiggler, method: 'post' },
   { path: '/api/hid/loop/block', handler: apiHIDLoopBlock, method: 'post' },
   { path: '/api/hid/loop', handler: apiHIDLoopStatus, method: 'get' },
+  { path: '/api/hid/loop', handler: apiHIDLoopActive, method: 'post' },
+  
   
   { path: '/api/msd/upload', handler: apiUpload, method: 'post' },
   { path: '/api/msd/upload/progress', handler: apiGetUploadProgress, method: 'post' },
