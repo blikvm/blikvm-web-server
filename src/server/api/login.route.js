@@ -308,11 +308,9 @@ function apiEnabledAuth(req, res, next) {
       auth: config.server.auth
     };
     res.json(returnObject);
-    if (auth === true) {
-      setTimeout(() => {
-        process.exit(0);
-      }, 1000); 
-    }
+    setTimeout(() => {
+      process.exit(0);
+    }, 1000); 
   } catch (err) {
     next(err);
   }
