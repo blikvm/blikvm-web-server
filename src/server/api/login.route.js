@@ -27,6 +27,9 @@ import { CONFIG_PATH, JWT_SECRET, UTF8 , SERVER_VERSION, PRODUCT_VERSION} from '
 import Logger from '../../log/logger.js';
 import jwt from 'jsonwebtoken';
 import TwoFactorAuth from '../../modules/two_factor_auth.js';
+import { HardwareType } from '../../common/enums.js';
+import {  getHardwareType } from '../../common/tool.js';
+
 
 const logger = new Logger();
 
@@ -265,10 +268,20 @@ function apiGetAuthState(req, res, next) {
     const returnObject = createApiObj();
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     returnObject.code = ApiCode.OK;
+    const hardwareType = getHardwareType();
+    let boardType = '';
+    if( hardwareType === HardwareType.MangoPi){
+      boardType ='mangopi';
+    }else if(hardwareType === HardwareType.PI4B ){
+      boardType = '4B';
+    }else if( hardwareType === HardwareType.CM4 ){
+      boardType = 'CM4';
+    }
     returnObject.data = {
       productVersion: PRODUCT_VERSION,
       serverVersion: SERVER_VERSION,
       auth: config.server.auth,
+      boardType: boardType,
       codeOfConductIsActivve: config.codeOfConduct.isActive,
       codeOfConductUrl: config.codeOfConduct.url
     };

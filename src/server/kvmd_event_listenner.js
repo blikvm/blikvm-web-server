@@ -186,6 +186,9 @@ class InputEventListener {
       this.mouse_button = 0;
       const { hid } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
       this.mouse_sensitivity = hid.pass_through.mouse_sensitivity;
+      if(hid.pass_through.wheelReverse === true) {
+        InputEventListener.wheelReverse = -1;
+      } 
   }
 
   // 初始化事件监听器

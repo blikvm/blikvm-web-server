@@ -39,6 +39,7 @@ class Mouse {
   _absMouse = null;
   _relMouse = null;
   _lastUserInteraction = 0;
+  _jigglerIntervalId = null;
   constructor() {
     if (!Mouse._instance) {
       this._init();
@@ -59,8 +60,11 @@ class Mouse {
       this._relMouse = new MouseBase('/dev/hidg1');
     }
     this._jigglerInterval = hid.jigglerInterval*1000; // s==>ms
+    if( hid.jigglerInterval > 0) {
+      this.startJiggler();
+    }
     this._lastUserInteraction = Date.now(); 
-    this._jigglerLoop();
+  
   }
 
   open() {
@@ -225,12 +229,14 @@ class Mouse {
     this._relative_sens = value;
   }
 
-  startJiggler(interval) {
-    this._jigglerInterval = interval*1000; //s==>ms
-    this._jigglerLoop();
-    // const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    // config.hid.jigglerInterval = interval ;
-    // fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+  startJiggler() {
+    if (this._jigglerActive ) {
+      logger.info('Mouse jiggler is already active.');
+      return;
+    }
+    this._jigglerActive = true;
+    this._jigglerIntervalId = setInterval(() => this._jigglerLoop(), this._jigglerInterval);
+    logger.info('Mouse jiggler started.');
   }
 
 
@@ -243,7 +249,10 @@ class Mouse {
 
     const currentTime = Date.now();
     const timeSinceLastInteraction = currentTime - this._lastUserInteraction;
-    if (timeSinceLastInteraction >= this._jigglerInterval) {
+    // logger.info(`Time since last interaction: ${timeSinceLastInteraction} ms currentTime: ${currentTime} lastUserInteraction: ${this._lastUserInteraction}`);
+ 
+
+    if ( timeSinceLastInteraction > this._jigglerInterval -1000 ) {
       logger.info(`No user interaction detected for ${this._jigglerInterval/1000} seconds, activating mouse jiggler.`);
 
       if (this._mouseMode === 'relative' ) {
@@ -254,8 +263,6 @@ class Mouse {
 
       this._lastUserInteraction = Date.now(); 
     }
-
-    setTimeout(() => this._jigglerLoop(), this._jigglerInterval);
   }
 
   _performAbsoluteJiggle() {
@@ -263,33 +270,69 @@ class Mouse {
       { x: 0.1, y: 0.1 },
       { x: 0.5, y: 0.5 }
     ];
-    jiggleSequence.forEach(({ x, y }) => {
+  
+    let index = 0;
+  
+    const sendJiggle = () => {
+      const { x, y } = jiggleSequence[index];
       const buf = this._prepareAbsoluteMouseEvent(0, x, y, 0, 0);
       this._absMouse.write(buf);
-    });
+  
+      index++;
+      if (index < jiggleSequence.length) {
+        setTimeout(sendJiggle, 1000); // 前后两次调用间隔 1 秒
+      }
+    };
+  
+    sendJiggle(); // 开始发送
   }
-
+  
   _performRelativeJiggle() {
     const jiggleSequence = [
       { x: -10, y: -10 },
       { x: 10, y: 10 }
     ];
-
-    jiggleSequence.forEach(({ x, y }) => {
+  
+    let index = 0;
+  
+    const sendJiggle = () => {
+      const { x, y } = jiggleSequence[index];
       const buf = this._prepareRelativeMouseEvent(0, x, y, 0, 0, 1);
       this._relMouse.write(buf);
-    });
+  
+      index++;
+      if (index < jiggleSequence.length) {
+        setTimeout(sendJiggle, 1000); // 前后两次调用间隔 1 秒
+      }
+    };
+  
+    sendJiggle(); // 开始发送
   }
+
 
   stopJiggler() {
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     config.hid.jigglerInterval = 0;
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+    this._jigglerActive = false;
+    if (this._jigglerIntervalId) {
+      clearInterval(this._jigglerIntervalId);
+      this._jigglerIntervalId = null;
+    }
     logger.info('stop mouse jiggler success');
   }
 
   updateJigglerInterval(interval) {
-    this._jigglerInterval = interval*1000; //ms==>s
+    if (typeof interval !== 'number' ) {
+      logger.error(`Invalid interval value: ${typeof(interval)}`);
+      return;
+    }
+    this._jigglerInterval = interval*1000; // s ===> ms
+    logger.info(`update mouse jiggler interval to ${this._jigglerInterval} ms`);
+    if (this._jigglerActive) {
+      clearInterval(this._jigglerIntervalId);
+      this._jigglerIntervalId = setInterval(() => this._jigglerLoop(), this._jigglerInterval);
+    }
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     config.hid.jigglerInterval = interval ;
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
