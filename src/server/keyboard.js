@@ -40,6 +40,7 @@ class Keyboard extends HIDDevice {
       super();
       Keyboard._instance = this;
       this._devicePath = '/dev/hidg0';
+      this._type = 'keyboard';
       this.open();
       this.startWriteToHid();
     }
@@ -254,15 +255,15 @@ class Keyboard extends HIDDevice {
       F10: 67,
       F11: 68,
       F12: 69,
-      PrtSc: 70,
+      PrintScreen: 70,
       ScrollLock: 71,
       Pause: 72,
       Insert: 73,
       Home: 74,
-      PgUp: 75,
+      PageUp: 75,
       Delete: 76,
       End: 77,
-      PgDn: 78,
+      PageDown: 78,
       ArrowRight: 79,
       ArrowLeft: 80,
       ArrowDown: 81,
@@ -346,6 +347,15 @@ class Keyboard extends HIDDevice {
     buffer.writeUInt8(0, 7);
 
     return buffer;
+  }
+
+  getStatus() {
+    return {
+      onlineStatus: this._onlineStatus,
+      NumLockLed: this._NumLockLed,
+      CapsLockLed: this._CapsLockLed,
+      ScrollLockLed: this._ScrollLockLed
+    };
   }
 
 }

@@ -23,10 +23,13 @@ import { ApiCode, createApiObj } from '../../common/api.js';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import bcrypt from 'bcrypt';
-import { CONFIG_PATH, JWT_SECRET, UTF8 } from '../../common/constants.js';
+import { CONFIG_PATH, JWT_SECRET, UTF8 , SERVER_VERSION, PRODUCT_VERSION} from '../../common/constants.js';
 import Logger from '../../log/logger.js';
 import jwt from 'jsonwebtoken';
 import TwoFactorAuth from '../../modules/two_factor_auth.js';
+import { HardwareType } from '../../common/enums.js';
+import {  getHardwareType } from '../../common/tool.js';
+
 
 const logger = new Logger();
 
@@ -93,10 +96,12 @@ async function apiCreateAccount(req, res, next) {
 function apiGetUserList(req, res, next) {
   try {
     const returnObject = createApiObj();
-    const users = getUsers();
-    const usernames = users.map(user => user.username);
+    
+    const { userManager } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    const userFile =  JSON.parse(fs.readFileSync(userManager.userFile, UTF8));
+
     returnObject.code = ApiCode.OK;
-    returnObject.data = usernames;
+    returnObject.data = userFile;
     res.json(returnObject);
   } catch (err) {
     next(err);
@@ -186,7 +191,8 @@ async function  apiLogin(req, res, next) {
     returnObject.code = ApiCode.OK;
     returnObject.data = {
       token,
-      username
+      username,
+      role: user.role, // 用户角色
     };
     res.json(returnObject);
   } catch (err) {
@@ -260,16 +266,68 @@ async function apiUpdateAccount(req, res, next) {
 function apiGetAuthState(req, res, next) {
   try {
     const returnObject = createApiObj();
-    const { server } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     returnObject.code = ApiCode.OK;
+    const hardwareType = getHardwareType();
+    let boardType = '';
+    if( hardwareType === HardwareType.MangoPi){
+      boardType ='mangopi';
+    }else if(hardwareType === HardwareType.PI4B ){
+      boardType = '4B';
+    }else if( hardwareType === HardwareType.CM4 ){
+      boardType = 'CM4';
+    }
     returnObject.data = {
-      auth: server.auth
+      productVersion: PRODUCT_VERSION,
+      serverVersion: SERVER_VERSION,
+      auth: config.server.auth,
+      boardType: boardType,
+      codeOfConductIsActivve: config.codeOfConduct.isActive,
+      codeOfConductUrl: config.codeOfConduct.url
     };
     res.json(returnObject);
   } catch (err) {
     next(err);
   }
 } 
+
+function apiEnabledAuth(req, res, next) {
+  try {
+    const returnObject = createApiObj();
+    const { auth } = req.body;
+    if (auth === undefined) {
+      returnObject.msg = 'Auth parameter is required!';
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+      res.json(returnObject);
+      return;
+    }
+    if (typeof auth !== 'boolean') {
+      returnObject.msg = 'Auth must be a boolean value!';
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+      res.json(returnObject);
+      return;
+    }
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    if(config.server.auth === auth) {
+      returnObject.msg = `Auth is already ${auth ? 'enabled' : 'disabled'}`;
+      returnObject.code = ApiCode.OK;
+      res.json(returnObject);
+      return;
+    }
+    returnObject.code = ApiCode.OK;
+    config.server.auth = auth;
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+    returnObject.data = {
+      auth: config.server.auth
+    };
+    res.json(returnObject);
+    setTimeout(() => {
+      process.exit(0);
+    }, 1000); 
+  } catch (err) {
+    next(err);
+  }
+}
 
 function apiChangeAuthExpiration(req, res, next) {
   try {
@@ -286,4 +344,4 @@ function apiChangeAuthExpiration(req, res, next) {
   }
 }
 
-export { apiLogin, apiUpdateAccount, apiGetUserList, apiCreateAccount, apiDeleteAccount, apiGetAuthState, apiChangeAuthExpiration };
+export { apiLogin, apiUpdateAccount, apiGetUserList, apiCreateAccount, apiDeleteAccount, apiGetAuthState, apiChangeAuthExpiration, apiEnabledAuth };

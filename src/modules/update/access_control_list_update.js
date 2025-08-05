@@ -19,31 +19,59 @@
 #                                                                            #
 *****************************************************************************/
 
-import { createApiObj, ApiCode } from '../../common/api.js';
+import fs from 'fs';
+import {fileExists} from '../../common/tool.js'
+import { UTF8, ACL_PATH } from '../../common/constants.js';
 import Logger from '../../log/logger.js';
-import AppConfigUpdate from '../../modules/update/app_update.js';
 
 const logger = new Logger();
 
-function apiResetConfig(req, res, next) {
-    try {
-      const returnObject = createApiObj();
-      const {retainCredentials } = req.body;
-      const appConfigUpdate = new AppConfigUpdate();
-      appConfigUpdate.setDefaultConfig(retainCredentials);
-      if(retainCredentials ){
-        returnObject.msg = 'Configuration reset to default with current credentials.';
-      }else{
-        returnObject.msg = 'Configuration reset to default without credentials.';
-      }
-      returnObject.code = ApiCode.OK;
-      res.json(returnObject);
-      setTimeout(() => {
-        process.exit(0)  // systemd 会自动重启
-      }, 500);
-    } catch (error) {
-      next(error);
-    } 
-} 
+class ACLConfigUpdate {
 
-export { apiResetConfig };
+  constructor() {
+    this._filePath = ACL_PATH;
+    this._defaultConfig = {
+      "version": 1,
+      "mode": "none",
+      "allowList": {
+        "items": []
+      },
+      "blockList": {
+        "items": []
+      }
+    };
+  }
+
+  // 通用升级函数，检查当前版本并逐步升级
+  upgradeData(data) {
+    return data;
+  }
+
+  // 升级配置文件
+  upgradeFile() {
+    try {
+      if(fileExists(this._filePath) === false){
+        fs.writeFileSync(this._filePath, JSON.stringify(this._defaultConfig, null, 2), UTF8);
+        return;
+      }
+
+      const localData = JSON.parse(fs.readFileSync(this._filePath, UTF8));
+      if (!localData.version) {
+        logger.warn('No access_control_list config version found, use latest default config');
+        fs.writeFileSync(this._filePath, JSON.stringify(this._defaultConfig, null, 2), UTF8);
+        return;
+      }
+
+      const upgradedData = this.upgradeData(localData);
+
+      fs.writeFileSync(this._filePath, JSON.stringify(upgradedData, null, 2), UTF8);
+
+      logger.info('access_control_list.json file successfully update!');
+
+    } catch (error) {
+      logger.error(`${error}`);
+    }
+  }
+}
+
+export default ACLConfigUpdate;

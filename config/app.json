@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "log": {
     "console": {
       "enabled": true,
@@ -17,6 +17,9 @@
   "userManager": {
     "userFile": "./config/user.json"
   },
+  "switchManager": {
+    "file": "./config/switch.json"
+  },
   "server": {
     "protocol": "https",
     "https_port": 443,
@@ -29,7 +32,7 @@
     "configPath": "/usr/bin/blikvm/package.json",
     "sshUser": "blikvm",
     "sshPassword": "blikvm",
-    "auth": false,
+    "auth": true,
     "authExpiration": 12,
     "ipWhite": {
       "enabled": false,
@@ -47,7 +50,8 @@
       "resolution": "1920x1080",
       "decode": "h264",
       "recordPath": "/mnt/tmp/record",
-      "recordBin": "./lib/pi/ustreamer-dump"
+      "recordBin": "./lib/pi/ustreamer-dump",
+      "shell": "./lib/kvmd-video.sh"
     },
     "gstreamer": {
       "port": 10004,
@@ -66,15 +70,16 @@
   "display": {
     "mode": "interval",
     "onBootTime": 3600,
-    "cycleInterval": 2800,
-    "displayTime": 290,
+    "cycleInterval": 60,
+    "displayTime": 10,
     "secondaryIP": "wg0"
   },
   "atx": {
     "controlSockFilePath": "/var/blikvm/atx.sock",
     "stateSockFilePath": "/dev/shm/blikvm/atx",
     "power_on_delay": 500,
-    "power_off_delay": 5000
+    "power_off_delay": 5000,
+    "isActive": true
   },
   "msd": {
     "enable": true,
@@ -89,11 +94,12 @@
     "keymaps": "./lib/keymaps",
     "enable": true,
     "mouseMode": "dual",
-    "jigglerInterval": 40,
+    "mouseJiggler": false,
+    "jigglerInterval": 20,
     "pass_through": {
-      "enabled": true,
-      "mouse_sensitivity": 0.3,
-      "blockFlag": true
+      "enabled": false,
+      "blockFlag": false,
+      "mouse_sensitivity": 0.3
     },
     "shortcuts": {
       "Ctrl+Alt+Del": [
@@ -125,17 +131,14 @@
     "password": "admin",
     "interval": 15
   },
-  "switchManager": {
-    "file": "./config/switch.json"
-  },
   "fan": {
-    "tempThreshold": 65
+    "tempThreshold": 68
   },
   "healthCheck": {
-    "RAM": 0.5,
+    "RAM": 0.8,
     "storage": 0.7,
     "latency": 80,
-    "temperature": 70
+    "temperature": 65
   },
   "janus": {
     "bin": "./lib/pi/janus",
@@ -145,5 +148,9 @@
   "Mediamtx": {
     "bin": "./lib/rk3566/mediamtx",
     "MediamtxCfg": "./lib/rk3566/mediamtx.yml"
+  }
+  "codeOfConduct": {
+    "isActive": true,
+    "url": ""
   }
 }

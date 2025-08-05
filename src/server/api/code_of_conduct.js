@@ -18,80 +18,80 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
 *****************************************************************************/
-import fs from 'fs';
-
 import { createApiObj, ApiCode } from '../../common/api.js';
 import { CONFIG_PATH, UTF8 } from '../../common/constants.js';
+import fs from 'fs';
 
-
-function apiChangeWebServerPort(req, res, next) {
-  try {
-    const returnObject = createApiObj();
-    const { https_port, http_port } = req.body;
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-
-    config.server.https_port = https_port;
-    config.server.http_port = http_port;
-
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
-    returnObject.data = {
-      https_port: config.server.https_port,
-      http_port: config.server.http_port
-    };
-    returnObject.msg = 'Web server port changed, restart the server to apply changes';
-    returnObject.code = ApiCode.OK;
-    res.json(returnObject);
-    setTimeout(() => {
-      process.exit(0);
-    }, 3000);
-  } catch (error) {
-    next(error);
-  }
-}
-
-function apiSetWebServerProtocol(req, res, next) {
-  try {
-    const returnObject = createApiObj();
-    const { protocol } = req.body;
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-
-    config.server.protocol = protocol;
-
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
-    returnObject.data = {
-      protocol: config.server.protocol
-    };
-    returnObject.msg = 'Web server protocol changed, restart the server to apply changes';
-    returnObject.code = ApiCode.OK;
-    res.json(returnObject);
-    setTimeout(() => {
-      process.exit(0);
-    }, 3000);
-  } catch (error) {
-    next(error);
-  }
-}
-
-function apiGetWebServerInfo(req, res, next) {
+function apiGetConducState(req, res, next) {
   try {
     const returnObject = createApiObj();
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    if( config.server.https_port > 0 && config.server.http_port > 0) {
-      returnObject.data = {
-        protocol: config.server.protocol,
-        https_port: config.server.https_port,
-        http_port: config.server.http_port
-      };
-      returnObject.code = ApiCode.OK;
-    }else{
+
+    if (config === undefined || config === null) {
+      returnObject.msg = 'app.json does not exist';
       returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
-      returnObject.msg = 'Server configuration is missing required ports';
+      return res.status(500).json(returnObject);
     }
-
+    returnObject.data = config.codeOfConduct;
+    returnObject.msg = 'Conduct data retrieved successfully';
     res.json(returnObject);
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 }
 
-export { apiChangeWebServerPort, apiGetWebServerInfo, apiSetWebServerProtocol};
+function apiActiveConduct(req, res, next) {
+  try {
+    const { isActive } = req.body;
+    const returnObject = createApiObj();
+    if (isActive === undefined || isActive === null) {
+      returnObject.msg = 'Invalid input parameters';
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+      return res.status(400).json(returnObject);
+    }
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    if (!config) {
+      returnObject.msg = 'app.json does not exist';
+      returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
+      return res.status(500).json(returnObject);
+    }
+    config.codeOfConduct.isActive = isActive; // 更新 codeOfConduct 的 isActive 状态
+
+    returnObject.data = config.codeOfConduct;
+    returnObject.msg = 'Conduct status updated successfully';
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+    res.json(returnObject);
+  } catch (err) {
+    next(err);
+  }
+}
+
+function apiUpdateUrlConduct(req, res, next) {
+  try {
+    const { url } = req.body;
+    const returnObject = createApiObj();
+    if (url === undefined || url === null) {
+      returnObject.msg = 'Invalid input parameters';
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+      return res.status(400).json(returnObject);
+    }
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    if (!config) {
+      returnObject.msg = 'app.json does not exist';
+      returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
+      return res.status(500).json(returnObject);
+    }
+    config.codeOfConduct.url = url;
+
+    returnObject.data = config.codeOfConduct;
+    returnObject.msg = 'Conduct url updated successfully';
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+    res.json(returnObject);
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+export { apiGetConducState, apiActiveConduct, apiUpdateUrlConduct };
+

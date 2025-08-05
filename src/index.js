@@ -35,7 +35,8 @@ import UserConfigUpdate from './modules/update/user_update.js';
 import AppConfigUpdate from './modules/update/app_update.js';
 import SwitchConfigUpdate from './modules/update/switch_update.js';
 import WOLConfigUpdate from './modules/update/wake_on_lane_update.js';
-import {InputEventListener, getFilteredEventDevices} from './server/kvmd_event_listenner.js';
+import ACLConfigUpdate from './modules/update/access_control_list_update.js';
+import { startHIDPassthroughListening } from './server/kvmd_event_listenner.js';
 import Mouse from './server/mouse.js';
 import Mediamtx from './modules/kvmd/kvmd_mediamtx.js';
 process.env.UV_THREADPOOL_SIZE = 8;
@@ -61,6 +62,10 @@ switchConfigUpdate.upgradeFile();
 const wolConfigUpdate = new WOLConfigUpdate();
 wolConfigUpdate.upgradeFile();
 
+// update access_control_list.json
+const aclConfigUpdate = new ACLConfigUpdate();
+aclConfigUpdate.upgradeFile();
+
 const notification = new Notification();
 const logger = new Logger();
 
@@ -81,8 +86,9 @@ httpServer.startService().then((result) => {
   //   //just for make sure jiggler is running
   //   const mouse = new Mouse();
   // }, 5000); // 5000 ms delay start ATX service
-
+  //setTimeout(() => {
   // startHIDLoop();
+  //   }, 4000);
 })
   .finally(() => {
     logger.info("All services have been started.");
@@ -113,11 +119,7 @@ function startHIDLoop() {
   if(hid.pass_through.enabled !== true){
     return;
   }
-  const eventDevices = getFilteredEventDevices();
-  eventDevices.forEach(device => {
-    const inputEventListener = new InputEventListener();
-    inputEventListener.open(`/dev/input/${device.event}`);
-  });
+  startHIDPassthroughListening();
 }
 function startVideo() {
 

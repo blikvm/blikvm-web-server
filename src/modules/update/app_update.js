@@ -165,6 +165,30 @@ class AppConfigUpdate {
     return data;
   }
 
+  upgradeV6toV7(data){
+    if(data.atx.isActive === undefined ){
+      data.atx.isActive = true; // 默认启用ATX功能
+    }
+    if( data.codeOfConduct === undefined ){
+      data.codeOfConduct = {
+        isActive: true,
+        url: ''
+      };
+    }
+    data.version = 7;
+    return data;
+  }
+
+  upgradeV7toV8(data){
+    if(data.hid.pass_through.wheelReverse === undefined ){
+      data.hid.pass_through.wheelReverse = false; // 默认鼠标滚轮不反转
+    }
+
+    data.version = 8;
+    return data;
+  }
+
+
   // 通用升级函数，检查当前版本并逐步升级
   upgradeData(data) {
     if (data.version === 1) {
@@ -186,6 +210,14 @@ class AppConfigUpdate {
     if( data.version === 5 ){
       logger.info('Update from version 5 to version 6...');
       data = this.upgradeV5toV6(data);
+    }
+    if( data.version === 6 ){
+      logger.info('Update from version 6 to version 7...');
+      data = this.upgradeV6toV7(data);
+    }
+    if( data.version === 7 ){
+      logger.info('Update from version 7 to version 8...');
+      data = this.upgradeV7toV8(data);
     }
     return data;
   }

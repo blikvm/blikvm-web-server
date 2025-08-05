@@ -19,11 +19,11 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
 *****************************************************************************/
-import { apiATXClick, apiATXState } from './atx.route.js';
+import { apiATXClick, apiATXState,apiActiveState, apiActiveSet} from './atx.route.js';
 import state from './state.route.js';
 import { apiVideoControl, apiVideoConfig, apiGetVideoState, apiRecording, apiResolutionChange, apiDecodeChange, apiSnapshot, apiEdidInfo,  apiEdidSet } from './video.route.js';
 import KVMDMain from './kvmd_main.route.js';
-import { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopBlock, apiHIDLoopStatus, apiKeyboardPasteLanguage } from './hid.route.js';
+import { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopUpdate, apiHIDLoopStatus, apiKeyboardPasteLanguage, apiHIDLoopActive } from './hid.route.js';
 import {
   apiUpload,
   apiCreateMSD,
@@ -35,14 +35,16 @@ import {
   apiGetUploadProgress,
   apiGetMakeImageProgress
 } from './msd.route.js';
-import { apiLogin, apiUpdateAccount, apiGetUserList, apiCreateAccount, apiDeleteAccount,apiGetAuthState, apiChangeAuthExpiration } from './login.route.js';
+import { apiLogin, apiUpdateAccount, apiGetUserList, apiCreateAccount, apiDeleteAccount,apiGetAuthState, apiChangeAuthExpiration,
+  apiEnabledAuth
+ } from './login.route.js';
 import {
   apiGetSwitch,
   apiSwitchActive,
   apiSwitchUpdate,
   apiSwitchChannel
 } from './switch.route.js';
-import { apiReboot, apiGetDevice, apiGetSystemInfo, apiGetLogs } from './system.routes.js';
+import { apiReboot, apiGetDevice, apiGetSystemInfo, apiGetLogs, apiUpdateHostname } from './system.routes.js';
 import { apiOcr } from './ocr.route.js';
 import { apiWakeOnLan, apiSendWakeOnLanList, apiGetWakeOnLanList, apiAddWakeOnLan, apiDeleteWakeOnLan} from './wol.route.js'; 
 import { apiMouseJiggler, apiMouseEvent } from './mouse.route.js';
@@ -52,10 +54,12 @@ import {  apiVPNEnable, apiVPNState } from './vpn.route.js';
 import {apiResetConfig } from './config.route.js'
 import {apiSetTempThreshold } from './fan.route.js';
 import {apiSetDispaly, apiGetDisplay } from './display.route.js';
-import {apiChangeWebServerPort} from './network.route.js';
+import {apiChangeWebServerPort, apiGetWebServerInfo, apiSetWebServerProtocol} from './network.route.js';
 import { apiGetHealthCheck, apiSetHealthCheck } from './health.route.js';
 import {apiDownloadFile} from './download.route.js';
 import {apiGetSerailDevice, apiSetSerailDevice} from './serial.route.js';
+import { apiGetACLState, apiAddList, apiDelete, apiChangeACLMode } from './access_control_list.route.js';
+import { apiUpdateUrlConduct, apiActiveConduct, apiGetConducState } from './code_of_conduct.js';
 
 /**
  * Array of route objects.
@@ -66,6 +70,8 @@ import {apiGetSerailDevice, apiSetSerailDevice} from './serial.route.js';
  * @private
  */
 const routes = [
+  { path: '/api/atx', handler: apiActiveState, method: 'get' },
+  { path: '/api/atx', handler: apiActiveSet, method: 'post' },
   { path: '/api/atx/state', handler: apiATXState, method: 'post' },
   { path: '/api/atx/click', handler: apiATXClick, method: 'post' },
   { path: '/api/state', handler: state, method: 'post' },
@@ -91,8 +97,10 @@ const routes = [
   { path: '/api/hid/shortcuts/config', handler: apiGetShortcutsConfig, method: 'post' },
   { path: '/api/mouse/event', handler: apiMouseEvent, method: 'post' },
   { path: '/api/mouse/jiggler', handler: apiMouseJiggler, method: 'post' },
-  { path: '/api/hid/loop/block', handler: apiHIDLoopBlock, method: 'post' },
+  { path: '/api/hid/loop/update', handler: apiHIDLoopUpdate, method: 'post' },
   { path: '/api/hid/loop', handler: apiHIDLoopStatus, method: 'get' },
+  { path: '/api/hid/loop', handler: apiHIDLoopActive, method: 'post' },
+  
   
   { path: '/api/msd/upload', handler: apiUpload, method: 'post' },
   { path: '/api/msd/upload/progress', handler: apiGetUploadProgress, method: 'post' },
@@ -125,10 +133,12 @@ const routes = [
   { path: '/api/reboot', handler: apiReboot, method: 'post' },
   { path: '/api/device', handler: apiGetDevice, method: 'post' },
   { path: '/api/systeminfo', handler: apiGetSystemInfo, method: 'get' },
+  { path: '/api/hostname', handler: apiUpdateHostname, method: 'post' },
   { path: '/api/ocr', handler: apiOcr, method: 'post' },
 
   { path: '/api/logs', handler: apiGetLogs, method: 'post' },
 
+  { path: '/api/auth/', handler: apiEnabledAuth, method: 'post' },
   { path: '/api/auth/state', handler: apiGetAuthState, method: 'get' },
 
   { path: '/api/prometheus', handler: apiPrometheusEnable, method: 'post' },
@@ -145,7 +155,13 @@ const routes = [
   { path: '/api/display', handler: apiGetDisplay, method: 'get' },
 
   { path: '/api/network/port', handler: apiChangeWebServerPort, method: 'post' },
-
+  { path: '/api/network/protocol', handler: apiSetWebServerProtocol, method: 'post' },
+  { path: '/api/network', handler: apiGetWebServerInfo, method: 'get' },
+  { path: '/api/network/acl', handler: apiGetACLState, method: 'get' },
+  { path: '/api/network/acl', handler: apiAddList, method: 'post' },
+  { path: '/api/network/acl', handler: apiDelete, method: 'delete' },
+  { path: '/api/network/acl/mode', handler: apiChangeACLMode, method: 'post' },
+  
   { path: '/api/wol', handler: apiWakeOnLan, method: 'post' },
   { path: '/api/wol/send', handler: apiSendWakeOnLanList, method: 'post' },
   { path: '/api/wol', handler: apiGetWakeOnLanList, method: 'get' },
@@ -159,6 +175,10 @@ const routes = [
 
   { path: '/api/serial', handler: apiSetSerailDevice, method: 'post' },
   { path: '/api/serial', handler: apiGetSerailDevice, method: 'get' },
+
+  { path: '/api/conduct/update', handler: apiUpdateUrlConduct, method: 'post' },
+  { path: '/api/conduct/active', handler: apiActiveConduct, method: 'post' },
+  { path: '/api/conduct', handler: apiGetConducState, method: 'get' },
   
 ];
 

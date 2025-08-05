@@ -18,7 +18,7 @@ function getHardwareTypeForConfig() {
 const hardware = getHardwareTypeForConfig();
 
 const defaultConfig = {
-    "version": 6,
+    "version": 8,
     "log": {
       "console": {
         "enabled": true,
@@ -86,6 +86,7 @@ const defaultConfig = {
       "secondaryIP": ""
     },
     "atx": {
+      "isActive": true,
       "controlSockFilePath": "/var/blikvm/atx.sock",
       "stateSockFilePath": "/dev/shm/blikvm/atx",
       "power_on_delay": 500,
@@ -108,7 +109,7 @@ const defaultConfig = {
       "jigglerInterval": 60,
       "pass_through": {
         "enabled": false,
-        "blockFlag": false,
+        "wheelReverse": false,
         "mouse_sensitivity": 0.3
       },
       "shortcuts": {
@@ -149,6 +150,10 @@ const defaultConfig = {
       "storage": 0.7,
       "latency": 80,
       "temperature": 70,
+    },
+    "codeOfConduct":{
+      "isActive": true,
+      "url": ""
     }
 };
 
