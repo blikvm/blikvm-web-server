@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "log": {
     "console": {
       "enabled": true,
@@ -95,11 +95,12 @@
     "enable": true,
     "mouseMode": "dual",
     "mouseJiggler": false,
-    "jigglerInterval": 20,
+    "jigglerInterval": 0,
     "pass_through": {
       "enabled": false,
       "blockFlag": false,
-      "mouse_sensitivity": 0.3
+      "mouse_sensitivity": 0.3,
+      "wheelReverse": false
     },
     "shortcuts": {
       "Ctrl+Alt+Del": [

@@ -268,7 +268,7 @@ function apiGetAuthState(req, res, next) {
     const returnObject = createApiObj();
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     returnObject.code = ApiCode.OK;
-    const hardwareType = getHardwareType();
+    const {hardwareType, streamerType} = getHardwareType();
     let boardType = '';
     if( hardwareType === HardwareType.MangoPi){
       boardType ='mangopi';
@@ -283,7 +283,8 @@ function apiGetAuthState(req, res, next) {
       auth: config.server.auth,
       boardType: boardType,
       codeOfConductIsActivve: config.codeOfConduct.isActive,
-      codeOfConductUrl: config.codeOfConduct.url
+      codeOfConductUrl: config.codeOfConduct.url,
+      streamer: streamerType
     };
     res.json(returnObject);
   } catch (err) {

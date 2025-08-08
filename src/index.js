@@ -76,8 +76,8 @@ httpServer.startService().then((result) => {
   startHid();
   startWebServer();
   startVideo();
-  const kvmdmain = new KVMDMain();
-  kvmdmain.startService();
+  // const kvmdmain = new KVMDMain();
+  // kvmdmain.startService();
   
   // startSwitch();
   // const atx = new ATX();

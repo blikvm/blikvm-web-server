@@ -102,7 +102,9 @@ const copyFiles = async () => {
   await deleteDirectoryIfExists(releaseDir);
   await createDirectoryIfNotExists(releaseDir);
 
-  const hardwareSysType = process.env.HARDWARE_TYPE || getHardwareType();
+  const {hardwareType, streamerType} = getHardwareType();
+
+  const hardwareSysType = process.env.HARDWARE_TYPE || hardwareType;
 
   if (hardwareSysType !== 'pi' && hardwareSysType !== 'h616') {
     console.error('Invalid hardware type. Use "pi" or "h616".');

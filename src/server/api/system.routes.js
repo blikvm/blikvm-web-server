@@ -168,7 +168,7 @@ function apiGetSystemInfo(req, res, next) {
           returnObject.data.board.type = systemData.raspberry.type;
         } else if (hardwareType === HardwareType.OrangePiCM4) {
           returnObject.data.board.serial = serialNumber;
-          returnObject.data.board.type  = "orangepi"
+          returnObject.data.board.type  = "orangepi";
         }
 
         res.json(returnObject);
