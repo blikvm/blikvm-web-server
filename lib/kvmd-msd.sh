@@ -49,7 +49,8 @@ while getopts "c:f:s:n:h:t:" opt; do
                 TYPE="$OPTARG"
                 ;;
     f)
-                iso_files+=("$OPTARG")
+                file_param=("$OPTARG")
+                read -ra iso_files <<< "$file_param"
                 ;;
     h|*)
                 usage
