@@ -321,6 +321,45 @@ async function readVentoyDirectory(ventoyDirectory) {
   }
 }
 
+async function readDirectoryFiles(directory) {
+  try {
+    const { used, size } = await getDiskSpace(directory);
+    const files = await fsPromises.readdir(directory);
+
+    const fileInformation = await Promise.all(
+      files.map(async (file) => {
+        const filePath = path.join(directory, file);
+        try {
+          const stats = await fsPromises.stat(filePath);
+
+          // Check if the file is a regular file
+          if (stats.isFile()) {
+            return {
+              name: file,
+              path: filePath,
+              imageSize: stats.size,
+              date: stats.mtime
+            };
+          }
+        } catch (error) {
+          // Handle error for individual file stat
+          console.error(`Error reading file stats for ${file}:`, error);
+        }
+      })
+    );
+
+    // Filter out undefined values (directories or non-regular files)
+    const filteredFileInformation = fileInformation.filter((info) => info);
+    return {
+      size,
+      used,
+      files: filteredFileInformation
+    };
+  } catch (error) {
+    console.error('Error reading directory:', error);
+  }
+}
+
 function processPing(ws, ping) {
   const ret = createApiObj();
   ret.data.pong = ping;
@@ -386,5 +425,6 @@ export {
   readVentoyDirectory,
   processPing,
   getSystemInfo,
+  readDirectoryFiles,
   getCurrentTimestamp
 };

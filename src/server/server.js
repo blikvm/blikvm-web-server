@@ -39,6 +39,7 @@ import { CONFIG_PATH, UTF8, JWT_SECRET,ACL_PATH } from '../common/constants.js';
 import { fileExists, processPing, getSystemInfo } from '../common/tool.js';
 import path from 'path';
 import { apiGetAuthState, apiLogin } from './api/login.route.js';
+import {apiDownloadFile} from './api/download.route.js';
 import jwt from 'jsonwebtoken';
 import HID from '../modules/kvmd/kvmd_hid.js';
 import { wsGetVideoState } from './api/video.route.js';
@@ -349,6 +350,8 @@ class HttpServer {
 
     app.post('/api/login', apiLogin);
     app.get('/api/auth/state', apiGetAuthState);
+    app.get('/api/virtual-media/:filename', apiDownloadFile);
+
 
     const PrometheusMetricsObj = new PrometheusMetrics();
     app.get('/api/export/prometheus/metrics', BasicAuthObj, async (req, res) => {

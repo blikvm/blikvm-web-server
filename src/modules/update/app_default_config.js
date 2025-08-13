@@ -94,7 +94,6 @@ const defaultConfig = {
     },
     "msd": {
       "enable": true,
-      "isoFilePath": "/mnt/msd/user",
       "shell": "./lib/kvmd-msd.sh",
       "stateFilePath": "/mnt/msd/config/msd.json",
       "tusPort": 10002

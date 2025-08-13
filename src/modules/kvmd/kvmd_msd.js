@@ -26,7 +26,7 @@ import { ApiCode, createApiObj } from '../../common/api.js';
 import Logger from '../../log/logger.js';
 import { exec } from 'child_process';
 import progressStream from 'progress-stream';
-import {dirExists} from '../../common/tool.js'
+
 import {
   executeCMD,
   getSystemType,
@@ -34,7 +34,7 @@ import {
   changetoROSystem,
   readVentoyDirectory
 } from '../../common/tool.js';
-import { CONFIG_PATH } from '../../common/constants.js';
+import { CONFIG_PATH, MSD_MOUNT_DIR } from '../../common/constants.js';
 
 const logger = new Logger();
 
@@ -63,7 +63,7 @@ class MSD {
     this._storage = multer.diskStorage({
       destination: function (req, file, cb) {
         const { msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-        cb(null, msd.isoFilePath);
+        cb(null, MSD_MOUNT_DIR);
       },
       filename: function (req, file, cb) {
         cb(null, file.originalname);
@@ -115,8 +115,7 @@ class MSD {
       !req.body.type ||
       !(req.body.type === MSDImageType.ventoy || req.body.type === MSDImageType.common) ||
       !req.body.name ||
-      !req.body.size ||
-      !req.body.images
+      !req.body.size 
     ) {
       return false;
     }
@@ -161,6 +160,7 @@ class MSD {
       const initialState = {
         msd_status: "not_connected",
         msd_img_created: "not_created",
+        file_mount_flag: "false",
       };
   
       const dirPath = path.dirname(stateFilePath);
@@ -183,14 +183,16 @@ class MSD {
       const returnObject = createApiObj();
       const state = this.getMSDState();
       if (state.msd_img_created === 'created') {
+        logger.warn('msd drive already created');
         returnObject.msg = 'msd drive alreadly created!';
-        returnObject.code = ApiCode.ok;
+        returnObject.code = ApiCode.INVALID_INPUT_PARAM;
         returnObject.data = state;
         res.json(returnObject);
         return;
       }
 
       if (!this._checkCreateParams(req)) {
+        logger.error('Invalid input parameters for creating MSD');
         returnObject.msg = 'Invalid input parameters';
         returnObject.code = ApiCode.INVALID_INPUT_PARAM;
         res.json(returnObject);
@@ -199,7 +201,6 @@ class MSD {
       const type = req.body.type;
       const name = req.body.name;
       const size = req.body.size;
-      const images = req.body.images.join(' ');
 
       const systemType = getSystemType();
       if (systemType === 'ro') {
@@ -214,7 +215,7 @@ class MSD {
       this._makeImageProgress = 0;
 
       const { msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-      const cmd = `bash ${msd.shell} -c make -s ${size} -n ${name} -t ${type} -f "${images}"`;
+      const cmd = `bash ${msd.shell} -c make -s ${size} -n ${name} -t ${type}`;
       logger.info(`Create MSD: ${cmd}`);
       this._executeCmdCP(cmd, (progress) => {
         logger.info(`make msd image progress: ${progress}`);
@@ -242,7 +243,52 @@ class MSD {
     }
   }
 
-  async connectMSD(req, res, next) {
+  async mountMSD(req, res, next) {
+    const returnObject = createApiObj();
+    const state = this.getMSDState();
+    const action = req.query.action;
+
+    if (state.file_mount_flag === 'true' && action === 'mount') {
+      returnObject.msg = "Already mounted, you can't exec mount command";
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+      returnObject.data = state;
+      return res.json(returnObject);
+    }
+    if (state.file_mount_flag === 'false' && action === 'unmount') {
+      returnObject.msg = "Already unmounted, you can't exec unmount command";
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+      returnObject.data = state;  
+      return res.json(returnObject);
+    }
+
+    const { msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  
+    try {
+      if (action === 'mount') {
+  
+        const cmd = `bash ${msd.shell} -c mount_image`;
+        await executeCMD(cmd); 
+        logger.info('mount MSD');
+        returnObject.msg = `${cmd} ok`;
+        returnObject.code = ApiCode.OK;
+        returnObject.data = this.getMSDState();
+        return res.json(returnObject);
+        
+      } else {
+        const cmd = `bash ${msd.shell} -c unmount_image`;
+        await executeCMD(cmd);  // 使用 await 确保执行完成
+        logger.info('umount MSD');
+        returnObject.msg = `${cmd} ok`;
+        returnObject.code = ApiCode.OK;
+        returnObject.data = this.getMSDState();
+        return res.json(returnObject);
+      }
+    } catch (err) {
+      next(err);
+    }
+  }
+
+    async connectMSD(req, res, next) {
     const returnObject = createApiObj();
     const state = this.getMSDState();
   
@@ -322,12 +368,11 @@ class MSD {
   }
 
   async getImages() {
-    const { msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
     try {
-      const isos = await readVentoyDirectory(msd.isoFilePath);
+      const isos = await readVentoyDirectory(MSD_MOUNT_DIR);
       return isos;
     } catch (err) {
-      logger.error(`Get all files in directory ${msd.isoFilePath} failed: ${err.message}`);
+      logger.error(`Get all files in directory ${MSD_MOUNT_DIR} failed: ${err.message}`);
       return [];
     }
   }
