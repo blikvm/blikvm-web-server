@@ -105,7 +105,7 @@ const EventCodeToHIDCode = {
   "KEY_KP9": "Numpad9",
 
   
-  "KEY_NUMLOCK": "numlock",
+  "KEY_NUMLOCK": "NumLock",
   "KEY_KPASTERISK": "NumpadMultiply",
   "KEY_KPPLUS": "NumpadAdd",
   "KEY_KPMINUS": "NumpadSubtract",
