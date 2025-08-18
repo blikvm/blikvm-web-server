@@ -23,8 +23,8 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 dotenv.config();
 
-export const PRODUCT_VERSION = '2.0.4';
-export const SERVER_VERSION = '1.0.3';
+export const PRODUCT_VERSION = '2.0.5';
+export const SERVER_VERSION = '1.0.4';
 export const CONFIG_DIR = 'config';
 export const MSD_MOUNT_DIR =  '/media/blikvm/ventoy';
 export const CONFIG_PATH = process.argv[2] ? process.argv[2] : 'config/app.json';
