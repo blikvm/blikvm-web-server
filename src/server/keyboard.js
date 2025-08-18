@@ -56,7 +56,7 @@ class Keyboard extends HIDDevice {
     this.writeToQueue(keyboardData);
   }
 
-  pasteData(data, lang) {
+  pasteData(data, lang, delayValue) {
     const web_keys = textToWebKeys(data, lang);
     if (web_keys === null) {
       return false;
@@ -64,13 +64,18 @@ class Keyboard extends HIDDevice {
     const keyboardProcessor = new KeyboardProcessor();
   
     let delay = 0;
+    if( delayValue < 5){
+      delayValue = 5;
+    }else if (delayValue > 100) {
+      delayValue = 100;
+    }
     for (let [key, state] of web_keys) {
       setTimeout(() => {
         const event = makeKeyboardEvent(key, state);
         const data = keyboardProcessor.processEvent(event);
         this.writeToQueue(data);
       }, delay);
-      delay += 5;
+      delay += delayValue;
     }
     return true;
   }

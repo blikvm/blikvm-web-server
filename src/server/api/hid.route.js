@@ -135,6 +135,7 @@ function apiKeyboardPaste(req, res, next) {
     const returnObject = createApiObj();
     const text = req.body.text;
     const lang = req.body.lang;
+    const delay = req.body.delay;
     if (typeof text !== 'string') {
       returnObject.code = ApiCode.INVALID_INPUT_PARAM;
       returnObject.msg = 'input data is not string';
@@ -146,7 +147,7 @@ function apiKeyboardPaste(req, res, next) {
       lang = 'en';
     }
     const keyboard = new Keyboard();
-    keyboard.pasteData(text, lang);
+    keyboard.pasteData(text, lang, delay);
     returnObject.code = ApiCode.OK;
     returnObject.msg = 'paste data ok';
     res.json(returnObject);

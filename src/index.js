@@ -38,6 +38,7 @@ import WOLConfigUpdate from './modules/update/wake_on_lane_update.js';
 import ACLConfigUpdate from './modules/update/access_control_list_update.js';
 import { startHIDPassthroughListening } from './server/kvmd_event_listenner.js';
 import Mouse from './server/mouse.js';
+import { killProcessByName } from './common/kill.js';
 
 process.env.UV_THREADPOOL_SIZE = 8;
 
@@ -115,7 +116,8 @@ function startHid() {
   }
 }
 
-function startJanus(){
+async function startJanus(){
+  await killProcessByName('janus', { fullMatch: false, termTimeout: 1000 });
   const janus = new Janus();
   janus.startService();
 }
