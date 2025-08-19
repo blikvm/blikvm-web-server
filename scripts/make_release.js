@@ -77,7 +77,7 @@ function getHardwareType() {
   if (modelOutput.includes(pi4bSys) || modelOutput.includes(piCM4Sys)) {
     hardwareSysType = 'pi';
   } else if (modelOutput.includes(mangoPiSys)) {
-    hardwareSysType = 'h616';
+    hardwareSysType = 'allwinner';
   }
   return hardwareSysType;
 }
@@ -86,11 +86,11 @@ const copyLibDirectory = async (hardwareSysType) => {
   const libDir = path.join(process.cwd(), 'lib');
   const entries = await fs.readdir(libDir);
   await Promise.all(entries.map(async (entry) => {
-    if (hardwareSysType === 'pi' && entry !== 'h616') {
+    if (hardwareSysType === 'pi' && entry !== 'allwinner') {
       const srcPath = path.join(libDir, entry);
       const destPath = path.join(releaseDir, 'lib', entry);
       await copyRecursive(srcPath, destPath);
-    } else if (hardwareSysType === 'h616' && entry !== 'pi') {
+    } else if (hardwareSysType === 'allwinner' && entry !== 'pi') {
       const srcPath = path.join(libDir, entry);
       const destPath = path.join(releaseDir, 'lib', entry);
       await copyRecursive(srcPath, destPath);
@@ -104,8 +104,8 @@ const copyFiles = async () => {
 
   const hardwareSysType = process.env.HARDWARE_TYPE || getHardwareType();
 
-  if (hardwareSysType !== 'pi' && hardwareSysType !== 'h616') {
-    console.error('Invalid hardware type. Use "pi" or "h616".');
+  if (hardwareSysType !== 'pi' && hardwareSysType !== 'allwinner') {
+    console.error('Invalid hardware type. Use "pi" or "allwinner".');
     process.exit(1);
   }
 

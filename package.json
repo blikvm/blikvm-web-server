@@ -9,7 +9,7 @@
     "clean": "rm -r build && rm -r release && rm -r doc/func",
     "build-1": "babel src --out-dir build/src && node scripts/post_babel.js",
     "build-2": "pkg -c .pkg.json build/src/index.js -o build/bin/server_app",
-    "build-3": "cross-env HARDWARE_TYPE=${HARDWARE_TYPE:-pi} node scripts/make_release.js",
+    "build-3": "cross-env HARDWARE_TYPE=$HARDWARE_TYPE node scripts/make_release.js",
     "build": "npm run build-1 && npm run build-2 && npm run build-3",
     "lint": "eslint . --ext .js,.cjs, --fix --ignore-path .gitignore",
     "format": "prettier --write src",
