@@ -89,7 +89,7 @@ function apiGetSystemInfo(req, res, next) {
         let sdAvailableSpace = fsData
         .filter(fs => fs.fs.startsWith('/dev/mmcblk0'))
         .reduce((total, partition) => total + partition.available, 0);
-        const { server } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+        const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
 
         const hdType  = getHardwareType();
         let deviceVersion = '';
@@ -108,7 +108,10 @@ function apiGetSystemInfo(req, res, next) {
           timezoneName: siTime.timezoneName,
           temperature: systemInfo.temperature,
           auth:{
-            isEnabled: server.auth
+            isEnabled: config.server.auth
+          },
+          config:{
+            isATXActive: config.atx.isActive
           },
           board: {
             deviceType: 'KVM-over-IP',
