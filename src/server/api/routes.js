@@ -62,6 +62,7 @@ import {apiDownloadFile} from './download.route.js';
 import {apiGetSerailDevice, apiSetSerailDevice} from './serial.route.js';
 import { apiGetACLState, apiAddList, apiDelete, apiChangeACLMode } from './access_control_list.route.js';
 import { apiUpdateUrlConduct, apiActiveConduct, apiGetConducState } from './code_of_conduct.js';
+import { scanWifi, connectWifi, disconnectWifi, wifiStatus } from './wifi.route.js';
 
 /**
  * Array of route objects.
@@ -182,6 +183,12 @@ const routes = [
   { path: '/api/conduct/update', handler: apiUpdateUrlConduct, method: 'post' },
   { path: '/api/conduct/active', handler: apiActiveConduct, method: 'post' },
   { path: '/api/conduct', handler: apiGetConducState, method: 'get' },
+
+  // Wi-Fi
+  { path: '/api/wifi/scan', handler: scanWifi, method: 'get' },
+  { path: '/api/wifi/status', handler: wifiStatus, method: 'get' },
+  { path: '/api/wifi/connect', handler: connectWifi, method: 'post' },
+  { path: '/api/wifi/disconnect', handler: disconnectWifi, method: 'post' },
   
 ];
 
