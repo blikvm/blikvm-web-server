@@ -19,12 +19,16 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
 *****************************************************************************/
+import fs from 'fs';
 import { ApiCode, createApiObj } from '../../common/api.js';
-import { MSD_MOUNT_DIR } from '../../common/constants.js';
+import { MSD_MOUNT_DIR, MSD_CONFIG_FILE, UTF8 } from '../../common/constants.js';
 import MSD from '../../modules/kvmd/kvmd_msd.js';
 import Mouse from '../mouse.js';
 import Keyboard from '../keyboard.js';
-import { readDirectoryFiles } from '../../common/tool.js';
+import { readDirectoryFiles, isMounted} from '../../common/tool.js';
+import Logger from '../../log/logger.js';
+
+const logger = new Logger();
 /**
  * /api/msd/state
  * /api/msd/upload?image=test.iso
@@ -113,6 +117,20 @@ async function apiImages(req, res, next) {
 async function apiGetMSDFiles(req, res, next) {
   try {
     const returnObject = createApiObj();
+    const mounted = await isMounted(MSD_MOUNT_DIR);
+    const config = JSON.parse(fs.readFileSync(MSD_CONFIG_FILE, UTF8));
+    const configMounted = config.file_mount_flag === "true" ? true : false;
+    if( mounted !== configMounted){
+      config.file_mount_flag = mounted ? "true" : "false";
+      fs.writeFileSync(MSD_CONFIG_FILE, JSON.stringify(config, null, 2), UTF8);
+    }
+    if (!mounted) {
+      logger.warn(`path not mounted: ${path}`);
+      returnObject.code = ApiCode.OK;
+      returnObject.msg = `${MSD_MOUNT_DIR} not mounted`;
+      res.json(returnObject);
+      return;
+    }
     const files =  await readDirectoryFiles(MSD_MOUNT_DIR);
     returnObject.code = ApiCode.OK;
     returnObject.data = files;

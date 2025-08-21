@@ -251,6 +251,22 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function isMounted(target) {
+  try {
+    // 规范化去掉末尾斜杠
+    if (target.length > 1 && target.endsWith('/')) target = target.slice(0, -1);
+    const data = await fsPromises.readFile('/proc/mounts', 'utf-8');
+    return data.split('\n').some(line => {
+      if (!line) return false;
+      // /proc/mounts 用空格分隔，第二列是挂载点
+      const parts = line.split(' ');
+      return parts[1] === target;
+    });
+  } catch {
+    return false;
+  }
+}
+
 async function getDiskSpace(path) {
   try {
     // 获取磁盘信息
@@ -426,5 +442,6 @@ export {
   processPing,
   getSystemInfo,
   readDirectoryFiles,
+  isMounted,
   getCurrentTimestamp
 };
