@@ -35,6 +35,7 @@ import {
   apiGetUploadProgress,
   apiGetMSDFiles,
   apiMSDMount,
+  getMntSize,
   apiGetMakeImageProgress
 } from './msd.route.js';
 import { apiLogin, apiUpdateAccount, apiGetUserList, apiCreateAccount, apiDeleteAccount,apiGetAuthState, apiChangeAuthExpiration,
@@ -112,6 +113,7 @@ const routes = [
   { path: '/api/msd/connect', handler: apiConnect, method: 'post' },
   { path: '/api/msd/images', handler: apiImages, method: 'post' },
   { path: '/api/msd/files', handler: apiGetMSDFiles, method: 'get' },
+  { path: '/api/msd/size', handler: getMntSize, method: 'get' },
   { path: '/api/msd/remove', handler: apiRemoveMSD, method: 'post' },
   { path: '/api/msd/delete', handler: apiDeleteImage, method: 'post' },
   { path: '/api/msd/mount', handler: apiMSDMount, method: 'post' },

@@ -27,6 +27,7 @@ import Mouse from '../mouse.js';
 import Keyboard from '../keyboard.js';
 import { readDirectoryFiles, isMounted} from '../../common/tool.js';
 import Logger from '../../log/logger.js';
+import { getDiskSpace } from '../../common/tool.js';
 
 const logger = new Logger();
 /**
@@ -114,6 +115,19 @@ async function apiImages(req, res, next) {
   }
 }
 
+async function getMntSize(req, res, next) {
+  try {
+    const returnObject = createApiObj();
+    const { used, size } = await getDiskSpace('/mnt');
+    returnObject.data = { used, size };
+    returnObject.code = ApiCode.OK;
+    res.json(returnObject);
+  } catch (err) {
+    next(err);
+  }
+
+}
+
 async function apiGetMSDFiles(req, res, next) {
   try {
     const returnObject = createApiObj();
@@ -195,5 +209,6 @@ export {
   apiGetUploadProgress,
   apiGetMSDFiles,
   apiMSDMount,
+  getMntSize,
   apiGetMakeImageProgress
 };

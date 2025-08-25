@@ -443,5 +443,6 @@ export {
   getSystemInfo,
   readDirectoryFiles,
   isMounted,
+  getDiskSpace,
   getCurrentTimestamp
 };

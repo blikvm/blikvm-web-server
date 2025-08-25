@@ -20,6 +20,7 @@
 *****************************************************************************/
 
 import fs from 'fs';
+import si from 'systeminformation';
 
 import { createApiObj, ApiCode } from '../../common/api.js';
 import { CONFIG_PATH, UTF8 } from '../../common/constants.js';
@@ -28,10 +29,32 @@ function apiGetHealthCheck(req, res, next) {
   try {
     const returnObject = createApiObj();
     const { healthCheck } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    returnObject.data = healthCheck;
-    returnObject.code = ApiCode.OK;
-    res.json(returnObject);
-  }catch (error) {
+
+    // Attach realtime snapshot: mem.actual and storage.actual
+    Promise.all([si.mem(), si.fsSize()])
+      .then(([memData, fsData]) => {
+        const memActual = memData.free;
+        // Prefer mmcblk0* (SD/eMMC). If none, fall back to root mount '/'
+        let storageActual = fsData
+          .filter((fs) => typeof fs.fs === 'string' && fs.fs.startsWith('/dev/mmcblk0'))
+          .reduce((total, p) => total + (p.available || 0), 0);
+        if (!storageActual) {
+          const root = fsData.find((p) => p.mount === '/');
+          storageActual = root?.available || 0;
+        }
+
+        returnObject.data = {
+          ...healthCheck,
+          current: {
+            mem: { actual: memActual },
+            storage: { actual: storageActual },
+          },
+        };
+        returnObject.code = ApiCode.OK;
+        res.json(returnObject);
+      })
+      .catch(next);
+  } catch (error) {
     next(error);
   }
 }
