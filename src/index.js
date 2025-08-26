@@ -36,6 +36,7 @@ import AppConfigUpdate from './modules/update/app_update.js';
 import SwitchConfigUpdate from './modules/update/switch_update.js';
 import WOLConfigUpdate from './modules/update/wake_on_lane_update.js';
 import ACLConfigUpdate from './modules/update/access_control_list_update.js';
+import ShortcutsConfigUpdate from './modules/update/shortcuts_update.js';
 import { startHIDPassthroughListening } from './server/kvmd_event_listenner.js';
 import Mouse from './server/mouse.js';
 import { killProcessByName } from './common/kill.js';
@@ -67,6 +68,10 @@ wolConfigUpdate.upgradeFile();
 // update access_control_list.json
 const aclConfigUpdate = new ACLConfigUpdate();
 aclConfigUpdate.upgradeFile();
+
+// update shortcuts.json
+const shortcutsConfigUpdate = new ShortcutsConfigUpdate();
+shortcutsConfigUpdate.upgradeFile();
 
 const notification = new Notification();
 const logger = new Logger();

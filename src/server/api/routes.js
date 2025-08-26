@@ -57,6 +57,7 @@ import {  apiVPNEnable, apiVPNState } from './vpn.route.js';
 import {apiResetConfig } from './config.route.js'
 import {apiSetTempThreshold } from './fan.route.js';
 import {apiSetDispaly, apiGetDisplay } from './display.route.js';
+import { getShortcuts, createShortcut, updateShortcut, deleteShortcut, resetShortcuts } from './shortcuts.route.js';
 import {apiChangeWebServerPort, apiGetWebServerInfo, apiSetWebServerProtocol} from './network.route.js';
 import { apiGetHealthCheck, apiSetHealthCheck } from './health.route.js';
 import {apiDownloadFile} from './download.route.js';
@@ -159,6 +160,13 @@ const routes = [
 
   { path: '/api/display', handler: apiSetDispaly, method: 'post' },
   { path: '/api/display', handler: apiGetDisplay, method: 'get' },
+
+  // Shortcuts
+  { path: '/api/shortcuts/:targetOS', handler: getShortcuts, method: 'get' },
+  { path: '/api/shortcuts/:targetOS', handler: createShortcut, method: 'post' },
+  { path: '/api/shortcuts/:targetOS/:name', handler: updateShortcut, method: 'patch' },
+  { path: '/api/shortcuts/:targetOS/:name', handler: deleteShortcut, method: 'delete' },
+  { path: '/api/shortcuts/:targetOS/reset', handler: resetShortcuts, method: 'post' },
 
   { path: '/api/network/port', handler: apiChangeWebServerPort, method: 'post' },
   { path: '/api/network/protocol', handler: apiSetWebServerProtocol, method: 'post' },
