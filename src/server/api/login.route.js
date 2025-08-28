@@ -244,8 +244,10 @@ async function changeAccount(oriUsername, newUsername, newPassword) {
 
 async function apiUpdateAccount(req, res, next) {
   try {
-    const { newUsername, newPassword } = req.body;
-    const oriUsername = req.headers.username;
+    
+    const { oriUsername, newUsername, newPassword } = req.body;
+    
+
     const response = await changeAccount(oriUsername, newUsername, newPassword);
     if (response) {
       res.json({

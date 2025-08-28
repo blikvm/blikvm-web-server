@@ -22,13 +22,14 @@
 import fs from 'fs';
 import path from 'path';
 import { fileExists, dirExists } from '../../common/tool.js';
-import { SHORTCUTS_PATH, UTF8 } from '../../common/constants.js';
+import { SHORTCUTS_PATH, UTF8, CONFIG_DIR } from '../../common/constants.js';
 import Logger from '../../log/logger.js';
 
 const logger = new Logger();
 
 class ShortcutsConfigUpdate {
   constructor() {
+    this._dirPath = CONFIG_DIR;
     this._filePath = SHORTCUTS_PATH;
     // Keep in sync with current defaults used by API and tests
     this._defaultConfig = {
