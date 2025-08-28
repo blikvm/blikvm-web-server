@@ -76,7 +76,7 @@ class MSD {
     try {
       const returnObject = createApiObj();
 
-      const progress = progressStream({ length: '0' }); // 注意这里 length 设置为 '0'
+  const progress = progressStream({ length: '0' }); // Note: length is set to '0' here
       req.pipe(progress);
       progress.headers = req.headers;
 
@@ -111,19 +111,49 @@ class MSD {
   }
 
   _checkCreateParams(req) {
-    if (
-      !req.body.type ||
-      !(req.body.type === MSDImageType.ventoy || req.body.type === MSDImageType.common) ||
-      !req.body.name ||
-      !req.body.size 
-    ) {
+    const body = req.body || {};
+
+  // 1) Basic normalization and trimming
+    const type = String(body.type || '').trim();
+    const name = String(body.name || '').trim();
+    const sizeRaw = String(body.size || '').trim();
+
+  // 2) Type whitelist
+    if (!(type === MSDImageType.ventoy || type === MSDImageType.common)) {
+  logger.error(`MSD create params invalid: unsupported type "${type}" (allowed: ${Object.values(MSDImageType).join(', ')})`);
       return false;
     }
+
+  // 3) Name validation: only letters/digits/._- are allowed, length 1–32
+    if (!/^[A-Za-z0-9._-]{1,32}$/.test(name)) {
+  logger.error(`MSD create params invalid: bad name "${name}" (allowed: [A-Za-z0-9._-], length 1-32)`);
+      return false;
+    }
+
+  // 4) Size validation: integer GB, 1 ~ 1024, no unit suffix is allowed
+    const m = sizeRaw.match(/^(\d{1,4})$/);
+    if (!m) {
+  logger.error(`MSD create params invalid: bad size "${sizeRaw}" (expected: integer GB between 1 and 1024, no unit suffix)`);
+      return false;
+    }
+    const gb = parseInt(m[1], 10);
+
+  // Allowed range: 1 GB ~ 1024 GB
+    if (Number.isNaN(gb) || gb < 1 || gb > 1024) {
+  logger.error(`MSD create params invalid: size out of range -> ${gb} GB (allowed: 1 ~ 1024 GB)`);
+      return false;
+    }
+
+  // 5) Canonicalization (rewrite in-place without changing other code paths)
+    req.body.type = type;
+    req.body.name = name;
+    req.body.size = String(gb); // Normalize to plain GB integer without any unit
+
     return true;
   }
 
   _parseProgress(data) {
-    // 解析命令输出并提取拷贝进度信息
+  // Parse command output and extract copy progress percentage
     const match = data.match(/(\d+)%/);
     return match ? parseInt(match[1], 10) : null;
   }
@@ -223,7 +253,7 @@ class MSD {
       })
         .then(() => {
           returnObject.msg = 'create msd drive ok';
-          returnObject.code = ApiCode.ok;
+          returnObject.code = ApiCode.OK;
           this._makeImageProgress = 0;
           res.json(returnObject);
         })
@@ -294,7 +324,7 @@ class MSD {
   
     if (state.msd_img_created !== 'created') {
       returnObject.msg = "usb drive not created, you can't exec connect command";
-      returnObject.code = ApiCode.ok;
+      returnObject.code = ApiCode.OK;
       returnObject.data = state;
       return res.json(returnObject);
     }
@@ -306,7 +336,7 @@ class MSD {
       if (action === 'true') {
         if (state.msd_status === 'connected') {
           returnObject.msg = 'usb drive already connected to host';
-          returnObject.code = ApiCode.ok;
+          returnObject.code = ApiCode.OK;
           returnObject.data = state;
           return res.json(returnObject);
         }
@@ -316,14 +346,14 @@ class MSD {
   
         logger.info('Connected MSD');
         returnObject.msg = `${cmd} ok`;
-        returnObject.code = ApiCode.ok;
+        returnObject.code = ApiCode.OK;
         returnObject.data = this.getMSDState();
         return res.json(returnObject);
         
       } else {
         if (state.msd_status === 'not_connected') {
           returnObject.msg = 'usb drive already disconnected from host';
-          returnObject.code = ApiCode.ok;
+          returnObject.code = ApiCode.OK;
           returnObject.data = state;
           return res.json(returnObject);
         }
@@ -333,7 +363,7 @@ class MSD {
   
         logger.info('Disconnected MSD');
         returnObject.msg = `${cmd} ok`;
-        returnObject.code = ApiCode.ok;
+        returnObject.code = ApiCode.OK;
         returnObject.data = this.getMSDState();
         return res.json(returnObject);
       }
@@ -348,7 +378,7 @@ class MSD {
     const state = this.getMSDState();
     if (state.msd_img_created !== 'created') {
       returnObject.msg = 'usb drive not created, you need to make first';
-      returnObject.code = ApiCode.ok;
+      returnObject.code = ApiCode.OK;
       returnObject.data = this.getMSDState();
       res.json(returnObject);
       return;
@@ -359,7 +389,7 @@ class MSD {
     try{
       await executeCMD(cmd);
       returnObject.msg = 'remove msd image ok';
-      returnObject.code = ApiCode.ok;
+      returnObject.code = ApiCode.OK;
       returnObject.data = this.getMSDState();
       res.json(returnObject);
     }catch (err) {
@@ -396,7 +426,7 @@ class MSD {
     const progress = this._uploadProgress;
     // logger.info(`getUploadProgress: ${progress}` );
     returnObject.msg = 'get the uplaod progress';
-    returnObject.code = ApiCode.ok;
+    returnObject.code = ApiCode.OK;
     returnObject.data = progress;
     res.json(returnObject);
   }
@@ -405,7 +435,7 @@ class MSD {
     const returnObject = createApiObj();
     const progress = this._makeImageProgress;
     returnObject.msg = 'get the make image progress';
-    returnObject.code = ApiCode.ok;
+    returnObject.code = ApiCode.OK;
     returnObject.data = progress;
     res.json(returnObject);
   }

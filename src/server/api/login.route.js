@@ -48,6 +48,11 @@ function getUsers() {
   return Accounts;
 }
 
+function getUserByName(name) {
+  const users = getUsers();
+  return users.find(u => u.username === name);
+}
+
 async function apiCreateAccount(req, res, next) {
   try {
     const returnObject = createApiObj();
@@ -200,7 +205,7 @@ async function  apiLogin(req, res, next) {
   }
 }
 
-async function changeAccount(oriUsername, newUsername, newPassword) {
+async function changeAccount(targetUsername, newUsername, newPassword) {
   try {
     // Read the configuration file to get the user file path
     const configData = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
@@ -214,8 +219,8 @@ async function changeAccount(oriUsername, newUsername, newPassword) {
 
     // Iterate through all user arrays
     for (let account of users.Accounts) {
-      // Find the user object by oriUsername
-      if (account.username === oriUsername) {
+      // Find the user object by targetUsername
+      if (account.username === targetUsername) {
         // Update the username and password
         account.username = newUsername;
         account.password = await hashEncrypt(newPassword);
@@ -225,7 +230,7 @@ async function changeAccount(oriUsername, newUsername, newPassword) {
     }
 
     if (!userFound) {
-      logger.error(`Error: User ${oriUsername} not found`);
+      logger.error(`Error: User ${targetUsername} not found`);
       return false;
     }
 
@@ -244,11 +249,43 @@ async function changeAccount(oriUsername, newUsername, newPassword) {
 
 async function apiUpdateAccount(req, res, next) {
   try {
-    
-    const { oriUsername, newUsername, newPassword } = req.body;
-    
+    const ret = createApiObj();
+    const requesterName = req.auth?.username;
+    if (!requesterName) {
+      logger.error( `Unauthorized access attempt: ${requesterName}`);
+      ret.code = ApiCode.INVALID_CREDENTIALS;
+      ret.msg = 'Unauthorized';
+      return res.status(401).json(ret);
+    }
+    const requester = getUserByName(requesterName);
+    if (!requester) {
+      ret.code = ApiCode.INVALID_CREDENTIALS;
+      ret.msg = 'Unauthorized';
+      return res.status(401).json(ret);
+    }
 
-    const response = await changeAccount(oriUsername, newUsername, newPassword);
+    const isAdmin = requester.role === 'admin';
+    if (!isAdmin) {
+      ret.code = ApiCode.INVALID_CREDENTIALS;
+      ret.msg = 'Permission denied, your account is not admin';
+      return res.status(403).json(ret);
+    }
+    const { targetUsername, newUsername, newPassword } = req.body;
+    
+    if (!newUsername && !newPassword) {
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = 'Nothing to update, please provide new username or password';
+      return res.status(400).json(ret);
+    }
+    if (newUsername && newUsername !== targetUsername) {
+      if (getUserByName(newUsername)) {
+        ret.code = ApiCode.INVALID_INPUT_PARAM;
+        ret.msg = 'Username already exists';
+        return res.status(400).json(ret);
+      }
+    }
+
+    const response = await changeAccount(targetUsername, newUsername, newPassword);
     if (response) {
       res.json({
         code: ApiCode.OK,

@@ -623,13 +623,14 @@ class HttpServer {
       res.status(401).json(returnObject);
       return;
     }
-    jwt.verify(token, JWT_SECRET, (err, user) => {
+    jwt.verify(token, JWT_SECRET, (err, payload) => {
       if (err) {
         logger.error('invalid token');
         returnObject.msg = 'invalid token';
         res.status(401).json(returnObject);
         return;
       }
+      req.auth = payload;
       next();
     });
   }
