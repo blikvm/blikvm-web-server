@@ -75,12 +75,16 @@ import { scanWifi, connectWifi, disconnectWifi, wifiStatus } from './wifi.route.
  * @private
  */
 const routes = [
+  //ATX
   { path: '/api/atx', handler: apiActiveState, method: 'get' },
   { path: '/api/atx', handler: apiActiveSet, method: 'post' },
   { path: '/api/atx/state', handler: apiATXState, method: 'post' },
   { path: '/api/atx/click', handler: apiATXClick, method: 'post' },
+
+  //state
   { path: '/api/state', handler: state, method: 'post' },
-  
+
+  //video
   { path: '/api/video', handler: apiVideoControl, method: 'post' },
   { path: '/api/video/config', handler: apiVideoConfig, method: 'post' },
   { path: '/api/video/state', handler: apiGetVideoState, method: 'post' },
@@ -90,22 +94,26 @@ const routes = [
   { path: '/api/video/edid', handler: apiEdidInfo, method: 'get' },
   { path: '/api/video/edid', handler: apiEdidSet, method: 'post' },
 
+  //KVM
   { path: '/api/kvmdmain', handler: KVMDMain, method: 'post' },
+
+  //HID
   { path: '/api/hid', handler: apiEnableHID, method: 'post' },
   { path: '/api/hid/mode', handler: apiChangeMode, method: 'post' },
   { path: '/api/hid/status', handler: apiGetStatus, method: 'post' },
   { path: '/api/hid/paste', handler: apiKeyboardPaste, method: 'post' },
   { path: '/api/hid/paste', handler: apiKeyboardPasteLanguage, method: 'get' },
-
   { path: '/api/hid/shortcuts', handler: apiKeyboardShortcuts, method: 'post' },
   { path: '/api/hid/shortcuts/config', handler: apiGetShortcutsConfig, method: 'post' },
-  { path: '/api/mouse/event', handler: apiMouseEvent, method: 'post' },
-  { path: '/api/mouse/jiggler', handler: apiMouseJiggler, method: 'post' },
   { path: '/api/hid/loop/update', handler: apiHIDLoopUpdate, method: 'post' },
   { path: '/api/hid/loop', handler: apiHIDLoopStatus, method: 'get' },
   { path: '/api/hid/loop', handler: apiHIDLoopActive, method: 'post' },
+
+  //mouse
+  { path: '/api/mouse/event', handler: apiMouseEvent, method: 'post' },
+  { path: '/api/mouse/jiggler', handler: apiMouseJiggler, method: 'post' },
   
-  
+  //virtual media
   { path: '/api/msd/upload', handler: apiUpload, method: 'post' },
   { path: '/api/msd/upload/progress', handler: apiGetUploadProgress, method: 'post' },
   { path: '/api/msd/create', handler: apiCreateMSD, method: 'post' },
@@ -118,46 +126,55 @@ const routes = [
   { path: '/api/msd/remove', handler: apiRemoveMSD, method: 'post' },
   { path: '/api/msd/delete', handler: apiDeleteImage, method: 'post' },
   { path: '/api/msd/mount', handler: apiMSDMount, method: 'post' },
+  { path: '/api/virtual-media/:filename', handler: apiDownloadFile, method: 'get' },
 
+
+  //login & account
   { path: '/api/login', handler: apiLogin, method: 'post' },
   { path: '/api/account/update', handler: apiUpdateAccount, method: 'post' },
   { path: '/api/account', handler: apiGetUserList, method: 'get' },
   { path: '/api/account/create', handler: apiCreateAccount, method: 'post' },
   { path: '/api/account/delete', handler: apiDeleteAccount, method: 'post' },
- 
+  { path: '/api/auth/expiration', handler: apiChangeAuthExpiration, method: 'post' },
+
+  // 2ta
   { path: '/api/2fa', handler: apiTwoFa, method: 'post' },
   { path: '/api/2fa/info', handler: apiGetTwoFaInfo, method: 'post' },
   { path: '/api/2fa/verify', handler: apiTwoFaVerify, method: 'post' },
 
-
-  { path: '/api/auth/expiration', handler: apiChangeAuthExpiration, method: 'post' },
-
+  // switch
   { path: '/api/switch/', handler: apiGetSwitch, method: 'get' },
   { path: '/api/switch/:id/activate', handler: apiSwitchActive, method: 'post' },
   { path: '/api/switch/:id/channel', handler: apiSwitchChannel, method: 'post' },
   { path: '/api/switch/:id/update', handler: apiSwitchUpdate, method: 'post' },
 
+  //system
   { path: '/api/reboot', handler: apiReboot, method: 'post' },
   { path: '/api/device', handler: apiGetDevice, method: 'post' },
   { path: '/api/systeminfo', handler: apiGetSystemInfo, method: 'get' },
   { path: '/api/hostname', handler: apiUpdateHostname, method: 'post' },
-  { path: '/api/ocr', handler: apiOcr, method: 'post' },
-
   { path: '/api/logs', handler: apiGetLogs, method: 'post' },
-
   { path: '/api/auth/', handler: apiEnabledAuth, method: 'post' },
   { path: '/api/auth/state', handler: apiGetAuthState, method: 'get' },
 
+  //ocr
+  { path: '/api/ocr', handler: apiOcr, method: 'post' },
+
+  //prometheus
   { path: '/api/prometheus', handler: apiPrometheusEnable, method: 'post' },
   { path: '/api/prometheus', handler: apiPrometheusState, method: 'get' },
 
+  //vpn
   { path: '/api/vpn', handler: apiVPNEnable, method: 'post' },
   { path: '/api/vpn', handler: apiVPNState, method: 'get' },
 
+  //config
   { path: '/api/security/config/reset', handler: apiResetConfig, method: 'post' },
 
+  //fan
   { path: '/api/fan', handler: apiSetTempThreshold, method: 'post' },
 
+  // display
   { path: '/api/display', handler: apiSetDispaly, method: 'post' },
   { path: '/api/display', handler: apiGetDisplay, method: 'get' },
 
@@ -168,6 +185,7 @@ const routes = [
   { path: '/api/shortcuts/:targetOS/:name', handler: deleteShortcut, method: 'delete' },
   { path: '/api/shortcuts/:targetOS/reset', handler: resetShortcuts, method: 'post' },
 
+  //network
   { path: '/api/network/port', handler: apiChangeWebServerPort, method: 'post' },
   { path: '/api/network/protocol', handler: apiSetWebServerProtocol, method: 'post' },
   { path: '/api/network', handler: apiGetWebServerInfo, method: 'get' },
@@ -176,20 +194,22 @@ const routes = [
   { path: '/api/network/acl', handler: apiDelete, method: 'delete' },
   { path: '/api/network/acl/mode', handler: apiChangeACLMode, method: 'post' },
   
+  //wol
   { path: '/api/wol', handler: apiWakeOnLan, method: 'post' },
   { path: '/api/wol/send', handler: apiSendWakeOnLanList, method: 'post' },
   { path: '/api/wol', handler: apiGetWakeOnLanList, method: 'get' },
   { path: '/api/wol/', handler: apiDeleteWakeOnLan, method: 'delete' },
   { path: '/api/v2/wol', handler: apiAddWakeOnLan, method: 'post' },
 
+  // healthcheck
   { path: '/api/healthcheck', handler: apiSetHealthCheck, method: 'post' },
   { path: '/api/healthcheck', handler: apiGetHealthCheck, method: 'get' },
 
-  { path: '/api/virtual-media/:filename', handler: apiDownloadFile, method: 'get' },
-
+  // serial 
   { path: '/api/serial', handler: apiSetSerailDevice, method: 'post' },
   { path: '/api/serial', handler: apiGetSerailDevice, method: 'get' },
 
+  // conduct
   { path: '/api/conduct/update', handler: apiUpdateUrlConduct, method: 'post' },
   { path: '/api/conduct/active', handler: apiActiveConduct, method: 'post' },
   { path: '/api/conduct', handler: apiGetConducState, method: 'get' },
