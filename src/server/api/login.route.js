@@ -321,7 +321,7 @@ function apiGetAuthState(req, res, next) {
       serverVersion: SERVER_VERSION,
       auth: config.server.auth,
       boardType: boardType,
-      codeOfConductIsActivve: config.codeOfConduct.isActive,
+      codeOfConductIsActive: config.codeOfConduct.isActive,
       codeOfConductUrl: config.codeOfConduct.url
     };
     res.json(returnObject);
