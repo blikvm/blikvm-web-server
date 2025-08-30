@@ -372,6 +372,8 @@ class HttpServer {
         app.post(route.path, route.handler);
       } else if (route.method === 'delete') {
         app.delete(route.path, route.handler);
+      } else if (route.method === 'patch') {
+        app.patch(route.path, route.handler);
       }
     });
 

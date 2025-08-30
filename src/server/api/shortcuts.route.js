@@ -127,6 +127,13 @@ function resetShortcuts(req, res, next) {
   const updater = new ShortcutsConfigUpdate();
   const defaults = updater._defaultConfig || { shortcuts: {} };
   const base = defaults.shortcuts && defaults.shortcuts[os] ? defaults.shortcuts[os] : {};
+
+  // Persist defaults to storage so subsequent GET reflects reset
+  const db = loadData();
+  db.shortcuts = db.shortcuts || {};
+  db.shortcuts[os] = base;
+  saveData(db);
+
   const items = Object.entries(base).map(([name, keys]) => ({ name, keys }));
     const ret = createApiObj();
     ret.code = ApiCode.OK;

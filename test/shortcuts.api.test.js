@@ -1,42 +1,50 @@
-import fs from 'fs';
-import path from 'path';
-import { getShortcuts, createShortcut, updateShortcut, deleteShortcut, resetShortcuts } from '../src/server/api/shortcuts.route.js';
 import ShortcutsConfigUpdate from '../src/modules/update/shortcuts_update.js';
+import http from 'http';
+import https from 'https';
 
-// Avoid import.meta in Jest by using process.cwd() (tests run from web_server/)
-const CONFIG_FILE = path.resolve(process.cwd(), 'config/shortcuts.json');
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+const baseURL = process.env.TEST_BASE_URL || 'https://127.0.0.1';
 
-function readJSON(p) { return JSON.parse(fs.readFileSync(p, 'utf8')); }
-function writeJSON(p, obj) { fs.writeFileSync(p, JSON.stringify(obj, null, 2), 'utf8'); }
-
-function mockRes() {
-  const res = {
-    statusCode: 200,
-    body: undefined,
-    status(code) { this.statusCode = code; return this; },
-    json(obj) { this.body = obj; return this; },
-    send(obj) { this.body = obj; return this; },
-  };
-  return res;
+function uniqueName(prefix) {
+  return `${prefix}_${Date.now()}_${Math.floor(Math.random()*1e6)}`;
 }
 
-function mockNext(err) { if (err) throw err; }
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+const httpAgent = new http.Agent();
 
-let backup;
+async function api(method, urlPath, body) {
+  const u = new URL(urlPath, baseURL);
+  const isHttps = u.protocol === 'https:';
+  const lib = isHttps ? https : http;
+  const agent = isHttps ? httpsAgent : httpAgent;
 
-beforeAll(() => {
-  backup = readJSON(CONFIG_FILE);
-});
+  const options = {
+    protocol: u.protocol,
+    hostname: u.hostname,
+    port: u.port || (isHttps ? 443 : 80),
+    path: u.pathname + (u.search || ''),
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    agent,
+  };
 
-beforeEach(() => {
-  // Reset to original backup before each test
-  writeJSON(CONFIG_FILE, backup);
-});
+  return await new Promise((resolve, reject) => {
+    const req = lib.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        let json = null;
+        try { json = data ? JSON.parse(data) : null; } catch (_) {}
+        resolve({ status: res.statusCode, json });
+      });
+    });
+    req.on('error', reject);
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
 
-afterAll(() => {
-  // Restore original file
-  writeJSON(CONFIG_FILE, backup);
-});
+// 无需 beforeAll 校验，已内置默认 baseURL
 
 function expectNoWarning(items) {
   for (const it of items) {
@@ -52,103 +60,94 @@ function sortItems(items) {
   return [...items].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-test('GET /api/shortcuts/:targetOS returns items without warning', () => {
-  const req = { params: { targetOS: 'windows' } };
-  const res = mockRes();
-  getShortcuts(req, res, mockNext);
-  expect(res.statusCode).toBe(200);
-  expect(res.body?.data?.items).toBeDefined();
-  expectNoWarning(res.body.data.items);
-  // sanity: contains known default
-  const names = res.body.data.items.map(x => x.name);
+test('GET /api/shortcuts/:targetOS returns items without warning', async () => {
+  const { status, json } = await api('GET', '/api/shortcuts/windows');
+  expect(status).toBe(200);
+  expect(json?.data?.items).toBeDefined();
+  expectNoWarning(json.data.items);
+  const names = json.data.items.map(x => x.name);
   expect(names.length).toBeGreaterThan(0);
 });
 
-test('POST createShortcut then GET shows new item and no warning', () => {
-  const reqCreate = { params: { targetOS: 'windows' }, body: { name: 'MyTest', keys: ['ControlLeft','AltLeft','KeyM'] } };
-  const resCreate = mockRes();
-  createShortcut(reqCreate, resCreate, mockNext);
-  expect(resCreate.statusCode).toBe(201);
-  expect(resCreate.body?.data?.name).toBe('MyTest');
-  expect(resCreate.body?.data?.keys).toEqual(['ControlLeft','AltLeft','KeyM']);
+test('POST createShortcut then GET shows new item and no warning', async () => {
+  const name = uniqueName('MyTest');
+  const create = await api('POST', '/api/shortcuts/windows', { name, keys: ['ControlLeft','AltLeft','KeyM'] });
+  expect(create.status).toBe(201);
+  expect(create.json?.data?.name).toBe(name);
+  expect(create.json?.data?.keys).toEqual(['ControlLeft','AltLeft','KeyM']);
 
-  const reqGet = { params: { targetOS: 'windows' } };
-  const resGet = mockRes();
-  getShortcuts(reqGet, resGet, mockNext);
-  const items = resGet.body.data.items;
-  expect(items.some(x => x.name === 'MyTest')).toBe(true);
+  const get = await api('GET', '/api/shortcuts/windows');
+  const items = get.json.data.items;
+  expect(items.some(x => x.name === name)).toBe(true);
   expectNoWarning(items);
 });
 
-test('POST duplicate shortcut returns 400', () => {
-  const name = 'DupTest';
-  // create once
-  createShortcut({ params: { targetOS: 'windows' }, body: { name, keys: ['KeyA'] } }, mockRes(), mockNext);
-  // create again
-  const resDup = mockRes();
-  createShortcut({ params: { targetOS: 'windows' }, body: { name, keys: ['KeyB'] } }, resDup, mockNext);
-  expect(resDup.statusCode).toBe(400);
+test('POST duplicate shortcut returns 400', async () => {
+  const name = uniqueName('DupTest');
+  await api('POST', '/api/shortcuts/windows', { name, keys: ['KeyA'] });
+  const dup = await api('POST', '/api/shortcuts/windows', { name, keys: ['KeyB'] });
+  expect(dup.status).toBe(400);
 });
 
-test('PATCH updateShortcut can rename and change keys', () => {
-  // seed
-  createShortcut({ params: { targetOS: 'windows' }, body: { name: 'OldName', keys: ['KeyX'] } }, mockRes(), mockNext);
+test('PATCH updateShortcut can rename and change keys', async () => {
+  const oldName = uniqueName('OldName');
+  const newName = uniqueName('NewName');
+  await api('POST', '/api/shortcuts/windows', { name: oldName, keys: ['KeyX'] });
 
-  const resUpdate = mockRes();
-  updateShortcut({ params: { targetOS: 'windows', name: 'OldName' }, body: { newName: 'NewName', keys: ['ControlLeft','KeyN'] } }, resUpdate, mockNext);
-  expect(resUpdate.statusCode).toBe(200);
-  expect(resUpdate.body?.data?.name).toBe('NewName');
-  expect(resUpdate.body?.data?.keys).toEqual(['ControlLeft','KeyN']);
+  const upd = await api('PATCH', `/api/shortcuts/windows/${encodeURIComponent(oldName)}`, { newName, keys: ['ControlLeft','KeyN'] });
+  expect(upd.status).toBe(200);
+  expect(upd.json?.data?.name).toBe(newName);
+  expect(upd.json?.data?.keys).toEqual(['ControlLeft','KeyN']);
 
-  const resGet = mockRes();
-  getShortcuts({ params: { targetOS: 'windows' } }, resGet, mockNext);
-  const items = resGet.body.data.items;
-  expect(items.some(x => x.name === 'NewName')).toBe(true);
-  expect(items.some(x => x.name === 'OldName')).toBe(false);
+  const get = await api('GET', '/api/shortcuts/windows');
+  const items = get.json.data.items;
+  expect(items.some(x => x.name === newName)).toBe(true);
+  expect(items.some(x => x.name === oldName)).toBe(false);
   expectNoWarning(items);
 });
 
-test('DELETE deleteShortcut removes item', () => {
-  createShortcut({ params: { targetOS: 'windows' }, body: { name: 'ToDelete', keys: ['KeyD'] } }, mockRes(), mockNext);
-  const resDel = mockRes();
-  deleteShortcut({ params: { targetOS: 'windows', name: 'ToDelete' } }, resDel, mockNext);
-  expect(resDel.statusCode).toBe(200);
+test('DELETE deleteShortcut removes item', async () => {
+  const name = uniqueName('ToDelete');
+  await api('POST', '/api/shortcuts/windows', { name, keys: ['KeyD'] });
+  const del = await api('DELETE', `/api/shortcuts/windows/${encodeURIComponent(name)}`);
+  expect(del.status).toBe(200);
 
-  const resGet = mockRes();
-  getShortcuts({ params: { targetOS: 'windows' } }, resGet, mockNext);
-  const names = resGet.body.data.items.map(x => x.name);
-  expect(names.includes('ToDelete')).toBe(false);
+  const get = await api('GET', '/api/shortcuts/windows');
+  const names = get.json.data.items.map(x => x.name);
+  expect(names.includes(name)).toBe(false);
 });
 
-test('POST resetShortcuts returns factory defaults from ShortcutsConfigUpdate after modifications', () => {
-  // 1) Load factory defaults via updater
+test('POST resetShortcuts returns factory defaults from ShortcutsConfigUpdate after modifications', async () => {
+  // 1) Load factory defaults via updater（本地仅用于计算期望值）
   const updater = new ShortcutsConfigUpdate();
   const defaults = updater._defaultConfig;
   expect(defaults).toBeDefined();
   const expectedItems = toItemArrayFromMap(defaults.shortcuts.windows);
 
   // 2) Add a temporary custom shortcut to windows
-  const tempName = 'TmpCustom';
+  const tempName = uniqueName('TmpCustom');
   const tempKeys = ['ControlLeft', 'AltLeft', 'KeyZ'];
-  const resCreate = mockRes();
-  createShortcut({ params: { targetOS: 'windows' }, body: { name: tempName, keys: tempKeys } }, resCreate, mockNext);
-  expect(resCreate.statusCode).toBe(201);
+  const created = await api('POST', '/api/shortcuts/windows', { name: tempName, keys: tempKeys });
+  expect(created.status).toBe(201);
 
   // Sanity: it appears in GET
-  const resGet = mockRes();
-  getShortcuts({ params: { targetOS: 'windows' } }, resGet, mockNext);
-  const hasTmp = resGet.body.data.items.some(x => x.name === tempName);
+  const get1 = await api('GET', '/api/shortcuts/windows');
+  const hasTmp = get1.json.data.items.some(x => x.name === tempName);
   expect(hasTmp).toBe(true);
 
   // 3) Reset and compare with factory defaults (order-insensitive)
-  const resReset = mockRes();
-  resetShortcuts({ params: { targetOS: 'windows' } }, resReset, mockNext);
-  expect(resReset.statusCode).toBe(200);
-  const resetItems = resReset.body?.data?.items || [];
+  const reset = await api('POST', '/api/shortcuts/windows/reset');
+  expect(reset.status).toBe(200);
+  const resetItems = reset.json?.data?.items || [];
   expect(resetItems.length).toBeGreaterThan(0);
   expectNoWarning(resetItems);
 
   const a = sortItems(resetItems);
   const b = sortItems(expectedItems);
   expect(a).toEqual(b);
+
+  // 4) GET again should reflect defaults persisted by reset
+  const getAfter = await api('GET', '/api/shortcuts/windows');
+  const itemsAfter = getAfter.json?.data?.items || [];
+  expect(sortItems(itemsAfter)).toEqual(b);
 });
