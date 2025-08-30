@@ -33,7 +33,7 @@ function apiGetHealthCheck(req, res, next) {
     // Attach realtime snapshot: mem.actual and storage.actual
     Promise.all([si.mem(), si.fsSize()])
       .then(([memData, fsData]) => {
-        const memActual = memData.free;
+        const memActual = memData.available ?? (memData.free + (memData.buffcache || 0));
         // Prefer mmcblk0* (SD/eMMC). If none, fall back to root mount '/'
         let storageActual = fsData
           .filter((fs) => typeof fs.fs === 'string' && fs.fs.startsWith('/dev/mmcblk0'))
