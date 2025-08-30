@@ -62,6 +62,11 @@ class ShortcutsConfigUpdate {
           "Ctrl+Alt+T": ["ControlLeft", "AltLeft", "KeyT"],
           "Ctrl+Alt+L": ["ControlLeft", "AltLeft", "KeyL"],
           "Alt+F2": ["AltLeft", "F2"]
+        },
+        android: {
+        },
+        ios: {
+          
         }
       }
     };

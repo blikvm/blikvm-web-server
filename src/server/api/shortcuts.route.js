@@ -1,7 +1,8 @@
-import fs from 'fs';
+import { readJson, writeJsonAtomic } from '../../common/atomic-file.js';
 import { createApiObj, ApiCode } from '../../common/api.js';
 import ShortcutsConfigUpdate from '../../modules/update/shortcuts_update.js';
 import { UTF8, SHORTCUTS_PATH } from '../../common/constants.js';
+import { isValidKeyCode } from '../../common/keycodes.js';
 // Compute config path relative to project root (web_server/)
 // Avoid import.meta for Jest compatibility
 
@@ -13,14 +14,8 @@ const TargetOS = {
   IOS: 'ios',
 };
 
-function loadData() {
-  const text = fs.readFileSync(SHORTCUTS_PATH, UTF8);
-  return JSON.parse(text);
-}
-
-function saveData(obj) {
-  fs.writeFileSync(SHORTCUTS_PATH, JSON.stringify(obj, null, 2), UTF8);
-}
+// ---------- Shared atomic utils ----------
+const loadData = async () => (await readJson(SHORTCUTS_PATH)) || { shortcuts: {} };
 
 function normalizeOS(os) {
   const v = String(os || '').toLowerCase();
@@ -31,12 +26,17 @@ function normalizeOS(os) {
 }
 
 // GET /api/shortcuts/:targetOS
-function getShortcuts(req, res, next) {
+async function getShortcuts(req, res, next) {
   try {
     const os = normalizeOS(req.params.targetOS);
-    if (!os) return res.status(400).json({ success: false, error: 'Invalid targetOS', code: 'INVALID_OS' });
-  const db = loadData();
-  const items = Object.entries(db.shortcuts[os] || {}).map(([name, keys]) => ({ name, keys }));
+    if (!os) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = 'Invalid targetOS';
+      return res.status(400).json(ret);
+    }
+    const db = await loadData();
+    const items = Object.entries(db.shortcuts[os] || {}).map(([name, keys]) => ({ name, keys }));
     const ret = createApiObj();
     ret.code = ApiCode.OK;
     ret.data = { items, targetOS: os };
@@ -45,100 +45,170 @@ function getShortcuts(req, res, next) {
 }
 
 // POST /api/shortcuts/:targetOS
-function createShortcut(req, res, next) {
+async function createShortcut(req, res, next) {
   try {
     const os = normalizeOS(req.params.targetOS);
-    if (!os) return res.status(400).json({ success: false, error: 'Invalid targetOS', code: 'INVALID_OS' });
+    if (!os) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = 'Invalid targetOS';
+      return res.status(400).json(ret);
+    }
     const { name, keys } = req.body || {};
     if (!name || !Array.isArray(keys) || !keys.length) {
-      return res.status(400).json({ success: false, error: 'Invalid payload', code: 'BAD_REQUEST' });
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = 'Invalid payload';
+      return res.status(400).json(ret);
     }
-    const db = loadData();
-    db.shortcuts[os] = db.shortcuts[os] || {};
-    if (db.shortcuts[os][name]) {
-      return res.status(400).json({ success: false, error: `Shortcut "${name}" already exists`, code: 'DUPLICATE_NAME' });
+    // Validate each key is in whitelist
+    const invalid = keys.some((k) => !isValidKeyCode(k));
+    if (invalid) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = 'Invalid payload: keys contains unsupported key code';
+      return res.status(400).json(ret);
     }
-    db.shortcuts[os][name] = keys;
-    saveData(db);
+    const result = await writeJsonAtomic(SHORTCUTS_PATH, (db) => {
+      db.shortcuts = db.shortcuts || {};
+      db.shortcuts[os] = db.shortcuts[os] || {};
+      if (db.shortcuts[os][name]) return { conflict: true };
+      db.shortcuts[os][name] = keys;
+      return { ok: true };
+    });
+    if (result.conflict) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = `Shortcut "${name}" already exists`;
+      return res.status(400).json(ret);
+    }
     const ret = createApiObj();
-    ret.code = ApiCode.CREATED || 201;
+    ret.code = ApiCode.OK;
     ret.data = { name, keys };
     res.status(201).json(ret);
   } catch (e) { next(e); }
 }
 
 // PATCH /api/shortcuts/:targetOS/:name
-function updateShortcut(req, res, next) {
+async function updateShortcut(req, res, next) {
   try {
     const os = normalizeOS(req.params.targetOS);
     const name = req.params.name;
-    if (!os || !name) return res.status(400).json({ success: false, error: 'Invalid params', code: 'BAD_REQUEST' });
+    if (!os || !name) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = 'Invalid params';
+      return res.status(400).json(ret);
+    }
     const { newName, keys } = req.body || {};
-    const db = loadData();
-    const bucket = db.shortcuts[os] || {};
-    if (!bucket[name]) {
-      return res.status(404).json({ success: false, error: `Shortcut "${name}" not found`, code: 'NOT_FOUND' });
-    }
-    let finalName = name;
-    if (newName && newName !== name) {
-      if (bucket[newName]) {
-        return res.status(400).json({ success: false, error: `Shortcut "${newName}" already exists`, code: 'DUPLICATE_NAME' });
-      }
-      bucket[newName] = bucket[name];
-      delete bucket[name];
-      finalName = newName;
-    }
     if (Array.isArray(keys) && keys.length) {
-      bucket[finalName] = keys;
+      const invalid = keys.some((k) => !isValidKeyCode(k));
+      if (invalid) {
+        const ret = createApiObj();
+        ret.code = ApiCode.INVALID_INPUT_PARAM;
+        ret.msg = 'Invalid payload: keys contains unsupported key code';
+        return res.status(400).json(ret);
+      }
     }
-    db.shortcuts[os] = bucket;
-    saveData(db);
+
+    const result = await writeJsonAtomic(SHORTCUTS_PATH, (db) => {
+      db.shortcuts = db.shortcuts || {};
+      const bucket = db.shortcuts[os] || {};
+      if (!bucket[name]) return { notFound: true };
+      let finalName = name;
+      if (newName && newName !== name) {
+        if (bucket[newName]) return { conflict: true };
+        bucket[newName] = bucket[name];
+        delete bucket[name];
+        finalName = newName;
+      }
+      if (Array.isArray(keys) && keys.length) {
+        bucket[finalName] = keys;
+      }
+      db.shortcuts[os] = bucket;
+      return { ok: true, finalName, keys: bucket[finalName] };
+    });
+
+    
+
+    if (result.notFound) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = `Shortcut "${name}" not found`;
+      return res.status(404).json(ret);
+    }
+    if (result.conflict) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = `Shortcut "${req.body?.newName}" already exists`;
+      return res.status(400).json(ret);
+    }
     const ret = createApiObj();
     ret.code = ApiCode.OK;
-    ret.data = { name: finalName, keys: bucket[finalName] };
+    ret.data = { name: result.finalName, keys: result.keys };
     res.json(ret);
   } catch (e) { next(e); }
 }
 
 // DELETE /api/shortcuts/:targetOS/:name
-function deleteShortcut(req, res, next) {
+async function deleteShortcut(req, res, next) {
   try {
     const os = normalizeOS(req.params.targetOS);
     const name = req.params.name;
-    if (!os || !name) return res.status(400).json({ success: false, error: 'Invalid params', code: 'BAD_REQUEST' });
-    const db = loadData();
-    const bucket = db.shortcuts[os] || {};
-    if (!bucket[name]) {
-      return res.status(404).json({ success: false, error: `Shortcut "${name}" not found`, code: 'NOT_FOUND' });
+    if (!os || !name) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = 'Invalid params';
+      return res.status(400).json(ret);
     }
-    delete bucket[name];
-    db.shortcuts[os] = bucket;
-    saveData(db);
-    res.json({ success: true, data: { message: 'Shortcut deleted successfully' } });
+
+    const result = await writeJsonAtomic(SHORTCUTS_PATH, (db) => {
+      db.shortcuts = db.shortcuts || {};
+      const bucket = db.shortcuts[os] || {};
+      if (!bucket[name]) return { notFound: true };
+      delete bucket[name];
+      db.shortcuts[os] = bucket;
+      return { ok: true };
+    });
+
+    if (result.notFound) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = `Shortcut "${name}" not found`;
+      return res.status(404).json(ret);
+    }
+    const ret = createApiObj();
+    ret.code = ApiCode.OK;
+    ret.data = { message: 'Shortcut deleted successfully' };
+    res.json(ret);
   } catch (e) { next(e); }
 }
 
 // POST /api/shortcuts/:targetOS/reset
-function resetShortcuts(req, res, next) {
+async function resetShortcuts(req, res, next) {
   try {
     const os = normalizeOS(req.params.targetOS);
-    if (!os) return res.status(400).json({ success: false, error: 'Invalid targetOS', code: 'INVALID_OS' });
-  // Source defaults from ShortcutsConfigUpdate to ensure a single truth
-  const updater = new ShortcutsConfigUpdate();
-  const defaults = updater._defaultConfig || { shortcuts: {} };
-  const base = defaults.shortcuts && defaults.shortcuts[os] ? defaults.shortcuts[os] : {};
+    if (!os) {
+      const ret = createApiObj();
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = 'Invalid targetOS';
+      return res.status(400).json(ret);
+    }
+    // Source defaults from ShortcutsConfigUpdate to ensure a single truth
+    const updater = new ShortcutsConfigUpdate();
+    const defaults = updater._defaultConfig || { shortcuts: {} };
+    const base = defaults.shortcuts && defaults.shortcuts[os] ? defaults.shortcuts[os] : {};
 
-  // Persist defaults to storage so subsequent GET reflects reset
-  const db = loadData();
-  db.shortcuts = db.shortcuts || {};
-  db.shortcuts[os] = base;
-  saveData(db);
+    await writeJsonAtomic(SHORTCUTS_PATH, (db) => {
+      db.shortcuts = db.shortcuts || {};
+      db.shortcuts[os] = base;
+    });
 
   const items = Object.entries(base).map(([name, keys]) => ({ name, keys }));
-    const ret = createApiObj();
-    ret.code = ApiCode.OK;
-    ret.data = { message: 'Reset to default shortcuts', items };
-    res.json(ret);
+  const ret = createApiObj();
+  ret.code = ApiCode.OK;
+  ret.data = { message: 'Reset to default shortcuts', items };
+  res.json(ret);
   } catch (e) { next(e); }
 }
 
