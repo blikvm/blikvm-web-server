@@ -30,7 +30,7 @@ import Janus from './modules/kvmd/kvmd_janus.js';
 import HID from './modules/kvmd/kvmd_hid.js';
 import KVMSwitchFactory from './modules/kvmd/switch/kvmd_switch.js';
 import { CONFIG_PATH, UTF8, SWITCH_PATH } from './common/constants.js';
-import {NotificationType, Notification } from './modules/notification.js';
+import { Notify } from './modules/notification.js';
 import UserConfigUpdate from './modules/update/user_update.js';
 import AppConfigUpdate from './modules/update/app_update.js';
 import SwitchConfigUpdate from './modules/update/switch_update.js';
@@ -73,7 +73,7 @@ aclConfigUpdate.upgradeFile();
 const shortcutsConfigUpdate = new ShortcutsConfigUpdate();
 shortcutsConfigUpdate.upgradeFile();
 
-const notification = new Notification();
+// Notification singleton is managed internally; no instantiation needed.
 const logger = new Logger();
 
 
@@ -99,7 +99,7 @@ httpServer.startService().then((result) => {
 })
 .finally(() => {
   logger.info("All services have been started.");
-  notification.addMessage(NotificationType.INFO, 'All services have been started.');
+  Notify.info('All services have been started.');
 });
 
 // function start switch

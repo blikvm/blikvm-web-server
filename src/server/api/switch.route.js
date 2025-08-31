@@ -23,7 +23,7 @@ import { ApiCode, createApiObj } from '../../common/api.js';
 import KVMSwitchFactory from '../../modules/kvmd/switch/kvmd_switch.js';
 import { SWITCH_PATH, UTF8 } from '../../common/constants.js';
 import { SwitchModulesID } from '../../common/enums.js';
-import { NotificationType, Notification } from '../../modules/notification.js';
+import { Notify } from '../../modules/notification.js';
 import fs from 'fs';
 
 function apiGetSwitch(req, res, next) {
@@ -53,8 +53,7 @@ function apiSwitchActive(req, res, next) {
       returnObject.code = ApiCode.INVALID_INPUT_PARAM;
       let msg = `you need to operate switch ${switchObj.kvmSwitch.activeSwitchId} before open new switch`
       returnObject.msg = msg;
-      const notification = new Notification();
-      notification.addMessage(NotificationType.ERROR, msg);
+      Notify.error(msg);
       res.json(returnObject);
       return;
     }

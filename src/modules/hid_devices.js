@@ -25,6 +25,7 @@ import { CONFIG_PATH, UTF8 } from '../common/constants.js';
 import { constants } from 'fs';
 import Queue from '../common/queue.js';
 import { isDeviceFile } from '../common/tool.js';
+import { Notify, NotificationModule } from '../modules/notification.js';
 
 const logger = new Logger();
 
@@ -174,7 +175,9 @@ class HIDDevice{
             fs.write(this._fd, dataBuffer, (err, written) => {
                 if (err) {
                     this._onlineStatus = false;
-                    logger.warn(`Error writing to ${this._devicePath} data:${data} ${err}`);
+                    const strWarning = `Error writing to ${this._devicePath} data:${data} ${err}`;
+                    logger.warn(strWarning);
+                    Notify.warning(strWarning, NotificationModule.HID);
                 } else {
                     this._onlineStatus = true;
                 }

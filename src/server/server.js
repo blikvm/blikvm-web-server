@@ -45,7 +45,7 @@ import HID from '../modules/kvmd/kvmd_hid.js';
 import { wsGetVideoState } from './api/video.route.js';
 import startTusServer from './tusServer.js';
 import { createSshServer, activeSSHConnections } from './sshServer.js';
-import { NotificationType, Notification } from '../modules/notification.js';
+import { Notify } from '../modules/notification.js';
 import ATX from '../modules/kvmd/kvmd_atx.js';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import httpProxy from 'http-proxy';
@@ -510,8 +510,7 @@ class HttpServer {
    */
   _websocketServerConnectionEvent(ws, req) {
     try {
-      const notification = new Notification();
-      notification.initWebSocket(ws);
+  Notify.initWebSocket(ws);
 
       logger.info(`WebSocket Client connected, total clients: ${this._wss.clients.size}`);
 
@@ -647,8 +646,7 @@ class HttpServer {
    */
   _httpErrorMiddle(err, req, res, next) {
     logger.error(`Error handling HTTP request: ${err}`);
-    const notification = new Notification();
-    notification.addMessage(NotificationType.ERROR, `Error handling HTTP request: ${err}`);
+  Notify.error(`Error handling HTTP request: ${err}`);
     const ret = createApiObj();
     ret.code = ApiCode.INTERNAL_SERVER_ERROR;
     ret.msg = err.message;

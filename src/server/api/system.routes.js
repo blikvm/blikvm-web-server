@@ -26,13 +26,13 @@ import { HardwareType } from '../../common/enums.js';
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
-import {Notification, NotificationType} from '../../modules/notification.js';
+import { Notify } from '../../modules/notification.js';
 import si from 'systeminformation';
 import Logger from '../../log/logger.js';
 
 const logger = new Logger();
 
-const notification = new Notification();
+// Use Notify singleton throughout
 
 function apiReboot(req, res, next) {
   try {
@@ -240,7 +240,7 @@ const apiGetLogs = async (req, res, next) => {
       .sort((a, b) => b.mtime - a.mtime)[0]?.file;
 
     if (!latestLogFile) {
-      notification.addMessage(NotificationType.ERROR, 'No log files found');
+      Notify.error('No log files found');
       return;
     }
 

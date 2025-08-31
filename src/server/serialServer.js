@@ -23,7 +23,7 @@ import { SerialPort } from 'serialport';
 import Logger from '../log/logger.js';
 import { CONFIG_PATH, UTF8 } from '../common/constants.js';
 import fs from 'fs';
-import { NotificationType, Notification } from '../modules/notification.js';
+import { Notify } from '../modules/notification.js';
 
 const logger = new Logger();
 let activeSerialConnections = 0;
@@ -110,8 +110,7 @@ const createSerialServer = (ws) => {
 
   serial.on('error', (err) => {
     logger.error(`Serial error: ${err.message}`);
-    const notification = new Notification();
-    notification.addMessage(NotificationType.ERROR, `SERIAL ERROR: ${err.message}`);
+    Notify.error(`SERIAL ERROR: ${err.message}`);
     ws.close();
   });
 };
