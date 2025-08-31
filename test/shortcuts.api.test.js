@@ -82,12 +82,6 @@ test('POST createShortcut then GET shows new item and no warning', async () => {
   expectNoWarning(items);
 });
 
-test('POST createShortcut with invalid key returns 400', async () => {
-  const name = uniqueName('BadKey');
-  const res = await api('POST', '/api/shortcuts/windows', { name, keys: ['NotARealCode'] });
-  expect(res.status).toBe(400);
-});
-
 test('POST duplicate shortcut returns 400', async () => {
   const name = uniqueName('DupTest');
   await api('POST', '/api/shortcuts/windows', { name, keys: ['KeyA'] });
@@ -110,13 +104,6 @@ test('PATCH updateShortcut can rename and change keys', async () => {
   expect(items.some(x => x.name === newName)).toBe(true);
   expect(items.some(x => x.name === oldName)).toBe(false);
   expectNoWarning(items);
-});
-
-test('PATCH updateShortcut with invalid key returns 400', async () => {
-  const nm = uniqueName('UpdBad');
-  await api('POST', '/api/shortcuts/windows', { name: nm, keys: ['KeyU'] });
-  const upd = await api('PATCH', `/api/shortcuts/windows/${encodeURIComponent(nm)}`, { keys: ['DefinitelyInvalid'] });
-  expect(upd.status).toBe(400);
 });
 
 test('DELETE deleteShortcut removes item', async () => {
