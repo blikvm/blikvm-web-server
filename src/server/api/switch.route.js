@@ -25,6 +25,7 @@ import { SWITCH_PATH, UTF8 } from '../../common/constants.js';
 import { SwitchModulesID } from '../../common/enums.js';
 import { Notify } from '../../modules/notification.js';
 import fs from 'fs';
+import { writeJsonAtomic } from '../../common/atomic-file.js';
 
 function apiGetSwitch(req, res, next) {
   try {
@@ -37,7 +38,7 @@ function apiGetSwitch(req, res, next) {
   }
 }
 
-function apiSwitchActive(req, res, next) {
+async function apiSwitchActive(req, res, next) {
   try {
     const returnObject = createApiObj();
     const activeValue = req.body.isActive;
@@ -73,14 +74,14 @@ function apiSwitchActive(req, res, next) {
       }
       kvmdSwitch
         .disableSwitch()
-        .then((result) => {
+        .then(async (result) => {
           if (result.result === true) {
             returnObject.code = ApiCode.OK;
             returnObject.msg = "switch inactive";
             switchObj.kvmSwitch.isActive = false;
             switchObj.kvmSwitch.activeSwitchId = -1;
             res.json(returnObject);
-            fs.writeFileSync(SWITCH_PATH, JSON.stringify(switchObj, null, 2), UTF8);
+            await writeJsonAtomic(SWITCH_PATH, switchObj);
           }else{
             returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
             returnObject.msg = result.msg;
@@ -103,7 +104,7 @@ function apiSwitchActive(req, res, next) {
       }
       kvmdSwitch
         .enableSwitch()
-        .then((result) => {
+        .then(async (result) => {
           console.log(result);
           if (result.result === true) {
             returnObject.code = ApiCode.OK;
@@ -111,7 +112,7 @@ function apiSwitchActive(req, res, next) {
             switchObj.kvmSwitch.isActive = true;
             switchObj.kvmSwitch.activeSwitchId = switchId;
             res.json(returnObject);
-            fs.writeFileSync(SWITCH_PATH, JSON.stringify(switchObj, null, 2), UTF8);
+            await writeJsonAtomic(SWITCH_PATH, switchObj);
           }else{
             returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
             returnObject.msg = result.msg;
@@ -159,15 +160,15 @@ function apiSwitchChannel(req, res, next) {
   }
 }
 
-function apiSwitchUpdate(req, res, next) {
+async function apiSwitchUpdate(req, res, next) {
   try {
     const returnObject = createApiObj();
     const switchId = parseInt(req.params.id, 10);
     const switchObj = JSON.parse(fs.readFileSync(SWITCH_PATH, UTF8));
     const itemIndex = switchObj.kvmSwitch.items.findIndex(item => item.id === switchId);
     if (itemIndex !== -1) {
-      switchObj.kvmSwitch.items[itemIndex] = req.body;
-      fs.writeFileSync(SWITCH_PATH, JSON.stringify(switchObj, null, 2), UTF8);
+  switchObj.kvmSwitch.items[itemIndex] = req.body;
+  await writeJsonAtomic(SWITCH_PATH, switchObj);
       returnObject.success = true;
       returnObject.message = 'Switch updated successfully';
     } else {

@@ -20,6 +20,7 @@
 *****************************************************************************/
 import { createApiObj, ApiCode } from '../../common/api.js';
 import {ACL_PATH, UTF8} from '../../common/constants.js';
+import { writeJsonAtomic } from '../../common/atomic-file.js';
 import fs from 'fs';
 
 function apiGetACLState(req, res, next) {
@@ -40,7 +41,7 @@ function apiGetACLState(req, res, next) {
   }
 }
 
-function apiAddList(req, res, next) {
+async function apiAddList(req, res, next) {
     try {
         const { mode, ip } = req.body;
         const returnObject = createApiObj();
@@ -80,16 +81,16 @@ function apiAddList(req, res, next) {
             returnObject.code = ApiCode.INVALID_INPUT_PARAM;
             return res.status(400).json(returnObject);
         }
-        returnObject.data = acl_config;
-        returnObject.msg = 'IP added successfully';
-        fs.writeFileSync(ACL_PATH, JSON.stringify(acl_config, null, 2), UTF8);
+  returnObject.data = acl_config;
+  returnObject.msg = 'IP added successfully';
+  await writeJsonAtomic(ACL_PATH, acl_config);
         res.json(returnObject);
     } catch (err) {
       next(err);
     }
 }
 
-function apiDelete(req, res, next) {
+async function apiDelete(req, res, next) {
     try {
       const { mode, ip } = req.body;
       const returnObject = createApiObj();
@@ -138,8 +139,8 @@ function apiDelete(req, res, next) {
         return res.status(400).json(returnObject);
       }
   
-      // 写回更新后的 ACL 配置文件
-      fs.writeFileSync(ACL_PATH, JSON.stringify(acl_config, null, 2), UTF8);
+  // 写回更新后的 ACL 配置文件
+  await writeJsonAtomic(ACL_PATH, acl_config);
   
       // 返回成功响应
       returnObject.data = acl_config;
@@ -151,7 +152,7 @@ function apiDelete(req, res, next) {
     }
   }
 
-  function apiChangeACLMode( req, res, next) {
+  async function apiChangeACLMode( req, res, next) {
     try {
         const { mode } = req.body;
         const returnObject = createApiObj();
@@ -167,8 +168,8 @@ function apiDelete(req, res, next) {
             return res.status(500).json(returnObject);
         }
 
-        acl_config.mode = mode; // 更新模式
-        fs.writeFileSync(ACL_PATH, JSON.stringify(acl_config, null, 2), UTF8);
+  acl_config.mode = mode; // 更新模式
+  await writeJsonAtomic(ACL_PATH, acl_config);
         returnObject.data.mode = acl_config.mode;
         returnObject.msg = 'ACL mode changed successfully';
         res.json(returnObject);

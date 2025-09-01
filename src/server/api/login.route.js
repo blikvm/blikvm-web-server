@@ -21,6 +21,7 @@
 
 import { ApiCode, createApiObj } from '../../common/api.js';
 import fs from 'fs';
+import { writeJsonAtomic } from '../../common/atomic-file.js';
 import fsPromises from 'fs/promises';
 import bcrypt from 'bcrypt';
 import { CONFIG_PATH, JWT_SECRET, UTF8 , SERVER_VERSION, PRODUCT_VERSION} from '../../common/constants.js';
@@ -330,7 +331,7 @@ function apiGetAuthState(req, res, next) {
   }
 } 
 
-function apiEnabledAuth(req, res, next) {
+async function apiEnabledAuth(req, res, next) {
   try {
     const returnObject = createApiObj();
     const { auth } = req.body;
@@ -346,7 +347,7 @@ function apiEnabledAuth(req, res, next) {
       res.json(returnObject);
       return;
     }
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     if(config.server.auth === auth) {
       returnObject.msg = `Auth is already ${auth ? 'enabled' : 'disabled'}`;
       returnObject.code = ApiCode.OK;
@@ -354,8 +355,7 @@ function apiEnabledAuth(req, res, next) {
       return;
     }
     returnObject.code = ApiCode.OK;
-    config.server.auth = auth;
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+  await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.server.auth = auth; });
     returnObject.data = {
       auth: config.server.auth
     };
@@ -368,13 +368,12 @@ function apiEnabledAuth(req, res, next) {
   }
 }
 
-function apiChangeAuthExpiration(req, res, next) {
+async function apiChangeAuthExpiration(req, res, next) {
   try {
     const returnObject = createApiObj();
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    const { expiration } = req.body;
-    config.server.authExpiration = expiration;
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify({ config }, null, 2), UTF8);
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+  const { expiration } = req.body;
+  await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.server.authExpiration = expiration; });
     returnObject.code = ApiCode.OK;
     returnObject.msg = 'Auth expiration changed successfully!';
     res.json(returnObject);

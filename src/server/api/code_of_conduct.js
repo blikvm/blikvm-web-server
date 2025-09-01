@@ -20,6 +20,7 @@
 *****************************************************************************/
 import { createApiObj, ApiCode } from '../../common/api.js';
 import { CONFIG_PATH, UTF8 } from '../../common/constants.js';
+import { writeJsonAtomic } from '../../common/atomic-file.js';
 import fs from 'fs';
 
 function apiGetConducState(req, res, next) {
@@ -40,7 +41,7 @@ function apiGetConducState(req, res, next) {
   }
 }
 
-function apiActiveConduct(req, res, next) {
+async function apiActiveConduct(req, res, next) {
   try {
     const { isActive } = req.body;
     const returnObject = createApiObj();
@@ -55,18 +56,18 @@ function apiActiveConduct(req, res, next) {
       returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
       return res.status(500).json(returnObject);
     }
-    config.codeOfConduct.isActive = isActive; // 更新 codeOfConduct 的 isActive 状态
+  config.codeOfConduct.isActive = isActive; // 更新 codeOfConduct 的 isActive 状态
 
-    returnObject.data = config.codeOfConduct;
-    returnObject.msg = 'Conduct status updated successfully';
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+  returnObject.data = config.codeOfConduct;
+  returnObject.msg = 'Conduct status updated successfully';
+  await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.codeOfConduct.isActive = isActive; });
     res.json(returnObject);
   } catch (err) {
     next(err);
   }
 }
 
-function apiUpdateUrlConduct(req, res, next) {
+async function apiUpdateUrlConduct(req, res, next) {
   try {
     const { url } = req.body;
     const returnObject = createApiObj();
@@ -81,11 +82,11 @@ function apiUpdateUrlConduct(req, res, next) {
       returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
       return res.status(500).json(returnObject);
     }
-    config.codeOfConduct.url = url;
+  config.codeOfConduct.url = url;
 
-    returnObject.data = config.codeOfConduct;
-    returnObject.msg = 'Conduct url updated successfully';
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+  returnObject.data = config.codeOfConduct;
+  returnObject.msg = 'Conduct url updated successfully';
+  await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.codeOfConduct.url = url; });
     res.json(returnObject);
   } catch (err) {
     next(err);

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { writeJsonAtomic } from '../common/atomic-file.js';
 import path from 'path';
 import EvdevReader from 'evdev';  
 import Logger from '../log/logger.js';
@@ -323,9 +324,9 @@ class InputEventListener {
   static setBlockFlag(flag) {
     if(InputEventListener.blockFlag !== flag) {
       InputEventListener.blockFlag = flag;
-      const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-      config.hid.pass_through.blockFlag = flag;
-      fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+  config.hid.pass_through.blockFlag = flag;
+  writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.pass_through.blockFlag = flag; });
       logger.info(`InputEventListener blockFlag set to ${flag}`);
     }else{
       logger.warn(`InputEventListener blockFlag already set to ${flag}`);

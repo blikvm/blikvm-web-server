@@ -19,21 +19,25 @@
 #                                                                            #
 *****************************************************************************/
 import fs from 'fs';
+import { writeJsonAtomic } from '../../common/atomic-file.js';
 
 import { createApiObj, ApiCode } from '../../common/api.js';
 import { CONFIG_PATH, UTF8 } from '../../common/constants.js';
 
 
-function apiChangeWebServerPort(req, res, next) {
+async function apiChangeWebServerPort(req, res, next) {
   try {
     const returnObject = createApiObj();
     const { https_port, http_port } = req.body;
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
 
     config.server.https_port = https_port;
     config.server.http_port = http_port;
 
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+    await writeJsonAtomic(CONFIG_PATH, (cfg) => {
+      cfg.server.https_port = https_port;
+      cfg.server.http_port = http_port;
+    });
     returnObject.data = {
       https_port: config.server.https_port,
       http_port: config.server.http_port
@@ -49,15 +53,13 @@ function apiChangeWebServerPort(req, res, next) {
   }
 }
 
-function apiSetWebServerProtocol(req, res, next) {
+async function apiSetWebServerProtocol(req, res, next) {
   try {
     const returnObject = createApiObj();
     const { protocol } = req.body;
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
 
-    config.server.protocol = protocol;
-
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+  await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.server.protocol = protocol; });
     returnObject.data = {
       protocol: config.server.protocol
     };

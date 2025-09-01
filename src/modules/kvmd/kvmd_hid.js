@@ -19,6 +19,7 @@
 #                                                                            #
 *****************************************************************************/
 import fs from 'fs';
+import { writeJsonAtomic } from '../../common/atomic-file.js';
 import Logger from '../../log/logger.js';
 import Module from '../module.js';
 import { ModuleState } from '../../common/enums.js';
@@ -64,8 +65,7 @@ class HID extends Module {
             this._state = ModuleState.RUNNING;
             const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
             if (config.hid.enable !== true) {
-              config.hid.enable = true;
-              fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+              writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = true; });
             }
             resolve();
           })
@@ -88,8 +88,7 @@ class HID extends Module {
           this._state = ModuleState.STOPPED;
           const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
           if (config.hid.enable !== false) {
-            config.hid.enable = false;
-            fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+            writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = false; });
           }
           resolve('hid disable success');
         })
@@ -109,9 +108,10 @@ class HID extends Module {
             return this.startService(mouseMode, config.msd.enable ? 'enable' : 'disable');
           })
           .then(() => {
-            config.hid.mouseMode = mouseMode;
-            config.hid.enable = true;
-            fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+            writeJsonAtomic(CONFIG_PATH, (cfg) => {
+              cfg.hid.mouseMode = mouseMode;
+              cfg.hid.enable = true;
+            });
             resolve(`${this._name} mode changed successfully, need reboot your kvm`);
           })
           .catch((err) => {
@@ -121,9 +121,10 @@ class HID extends Module {
       } else {
         this.startService(mouseMode, config.msd.enable ? 'enable' : 'disable')
           .then(() => {
-            config.hid.mouseMode = mouseMode;
-            config.hid.enable = true;
-            fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+            writeJsonAtomic(CONFIG_PATH, (cfg) => {
+              cfg.hid.mouseMode = mouseMode;
+              cfg.hid.enable = true;
+            });
             resolve(`${this._name} mode changed successfully, need reboot your kvm`);
           })
           .catch((err) => {

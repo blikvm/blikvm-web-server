@@ -19,6 +19,7 @@
 #                                                                            #
 *****************************************************************************/
 import fs from 'fs';
+import { writeJsonAtomic } from '../../common/atomic-file.js';
 import { ApiCode, createApiObj } from '../../common/api.js';
 import HID from '../../modules/kvmd/kvmd_hid.js';
 import Keyboard from '../keyboard.js';
@@ -240,7 +241,7 @@ function apiHIDLoopStatus(req, res, next) {
 }
 
 
-function apiHIDLoopActive(req, res, next) {
+async function apiHIDLoopActive(req, res, next) {
   try{
     const { isActive } = req.body; 
     const returnObject = createApiObj();
@@ -256,16 +257,14 @@ function apiHIDLoopActive(req, res, next) {
     }
     if(isActive === true) { 
       startHIDPassthroughListening();
-        config.hid.pass_through.enabled = true;
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+        await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.pass_through.enabled = true; });
     }else{
       stopHIDPassthroughListening();
-        config.hid.pass_through.enabled = false;
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+        await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.pass_through.enabled = false; });
     }
     returnObject.msg = ' HID loop active status changed successfully';
     returnObject.data = {
-      enabled: config.hid.pass_through.enabled
+      enabled: JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8)).hid.pass_through.enabled
     };
     res.json(returnObject);
   }catch(err){
@@ -273,7 +272,7 @@ function apiHIDLoopActive(req, res, next) {
   }
 }
 
-function apiHIDLoopUpdate(req, res, next) {
+async function apiHIDLoopUpdate(req, res, next) {
   try{
     const { wheelReverse } = req.body; 
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
@@ -288,13 +287,12 @@ function apiHIDLoopUpdate(req, res, next) {
       return;
     }
     InputEventListener.setWheelReverse(wheelReverse );
-    config.hid.pass_through.wheelReverse = wheelReverse;
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+    await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.pass_through.wheelReverse = wheelReverse; });
     const returnObject = createApiObj();
     returnObject.code = ApiCode.OK;
     returnObject.msg = '';
     returnObject.data = {
-      wheelReverse: config.hid.pass_through.wheelReverse
+      wheelReverse: JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8)).hid.pass_through.wheelReverse
     };
     res.json(returnObject);
   }catch(err){

@@ -27,6 +27,7 @@ import Logger from '../log/logger.js';
 import { isDeviceFile } from '../common/tool.js';
 import fs from 'fs';
 import { CONFIG_PATH, UTF8 } from '../common/constants.js';
+import { writeJsonAtomic } from '../common/atomic-file.js';
 import  HIDDevice  from '../modules/hid_devices.js';
 import MouseBase from '../modules/mouse_base.js';
 
@@ -312,8 +313,8 @@ class Mouse {
 
   stopJiggler() {
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    config.hid.jigglerInterval = 0;
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+  config.hid.jigglerInterval = 0;
+  writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.jigglerInterval = 0; });
     this._jigglerActive = false;
     if (this._jigglerIntervalId) {
       clearInterval(this._jigglerIntervalId);
@@ -333,9 +334,8 @@ class Mouse {
       clearInterval(this._jigglerIntervalId);
       this._jigglerIntervalId = setInterval(() => this._jigglerLoop(), this._jigglerInterval);
     }
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    config.hid.jigglerInterval = interval ;
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), UTF8);
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+  writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.jigglerInterval = interval; });
   }
 
   getJigglerStatus() {
