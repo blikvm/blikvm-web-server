@@ -21,7 +21,7 @@
 *****************************************************************************/
 import { CONFIG_PATH, UTF8 } from '../../common/constants.js';
 import { ApiCode, createApiObj } from '../../common/api.js';
-import { getSystemInfo, executeCMD, getHardwareType } from '../../common/tool.js';
+import { getSystemInfo, executeCMD, getHardwareType, changetoRWSystem, changetoROSystem, getSystemType } from '../../common/tool.js';
 import { HardwareType } from '../../common/enums.js';
 import fs from 'fs';
 import path from 'path';
@@ -197,20 +197,38 @@ async function apiUpdateHostname(req, res, next){
       return res.status(400).json({ code: ApiCode.ERROR, message: 'Invalid hostname' });
     }
 
-    await executeCMD(`hostnamectl set-hostname ${hostname}`);
+    // Remember original root mount state and switch to RW if needed
+    const originalState = getSystemType(); // 'ro' | 'rw' | 'error'
+    if (originalState === 'ro') {
+      const ok = changetoRWSystem();
+      if (!ok) {
+        return res.status(500).json({ code: ApiCode.INTERNAL_SERVER_ERROR, message: 'Failed to remount / as read-write' });
+      }
+    }
+
+    try {
+      // Use executeCMD to set hostname
+      await executeCMD(`hostnamectl set-hostname ${hostname}`);
+    } finally {
+      // Restore to RO if it was RO before
+      if (originalState === 'ro') {
+        changetoROSystem();
+      }
+    }
+
     const returnObject = createApiObj();
     si.osInfo()
-    .then(osData => {
-      returnObject.code = ApiCode.OK;
-      returnObject.msg = 'Hostname updated successfully';
-      returnObject.data = {
-        hostname: osData.hostname || 'Unknown'
-      };
-      res.json(returnObject);
-    })
-    .catch(error => {
-      next(error);
-    });
+      .then(osData => {
+        returnObject.code = ApiCode.OK;
+        returnObject.msg = 'Hostname updated successfully';
+        returnObject.data = {
+          hostname: osData.hostname || 'Unknown'
+        };
+        res.json(returnObject);
+      })
+      .catch(error => {
+        next(error);
+      });
   } catch (error) {
     next(error);
   }
