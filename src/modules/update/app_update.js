@@ -240,12 +240,13 @@ class AppConfigUpdate {
         fs.writeFileSync(this._filePath, JSON.stringify(this._defaultConfig, null, 2), UTF8);
         return;
       }
-
+      if (localData.version === this._defaultConfig.version) {
+        logger.info('User config app.json version is up to date');
+        return;
+      }
       const upgradedData = this.upgradeData(localData);
-
       fs.writeFileSync(this._filePath, JSON.stringify(upgradedData, null, 2), UTF8);
-
-      logger.info('app.json file successfully update!');
+      logger.info(`User config app.json upgraded to version ${upgradedData.version}`);
 
     } catch (error) {
       logger.error(`${error}`);

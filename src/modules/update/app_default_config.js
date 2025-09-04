@@ -110,29 +110,6 @@ const defaultConfig = {
         "enabled": false,
         "wheelReverse": false,
         "mouse_sensitivity": 0.3
-      },
-      "shortcuts": {
-        "Ctrl+Alt+Del": [
-          "ControlLeft",
-          "AltLeft",
-          "Delete"
-        ],
-        "Alt+Tab": [
-          "AltLeft",
-          "Tab"
-        ],
-        "Alt+F4": [
-          "AltLeft",
-          "F4"
-        ],
-        "Alt+Enter": [
-          "AltLeft",
-          "Enter"
-        ],
-        "Ctrl+W": [
-          "ControlLeft",
-          "KeyW"
-        ]
       }
     },
     "prometheus":{

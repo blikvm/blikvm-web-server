@@ -40,6 +40,7 @@ import ShortcutsConfigUpdate from './modules/update/shortcuts_update.js';
 import { startHIDPassthroughListening } from './server/kvmd_event_listenner.js';
 import Mouse from './server/mouse.js';
 import { killProcessByName } from './common/kill.js';
+import { startCheck } from './modules/start_check.js';
 
 process.env.UV_THREADPOOL_SIZE = 8;
 
@@ -72,6 +73,8 @@ aclConfigUpdate.upgradeFile();
 // update shortcuts.json
 const shortcutsConfigUpdate = new ShortcutsConfigUpdate();
 shortcutsConfigUpdate.upgradeFile();
+
+startCheck(); // every start server to check
 
 // Notification singleton is managed internally; no instantiation needed.
 const logger = new Logger();

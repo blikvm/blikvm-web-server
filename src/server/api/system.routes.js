@@ -139,15 +139,15 @@ function apiGetSystemInfo(req, res, next) {
           },
           network: netDataFilter
         };
-        const hardwareType = getHardwareType();
-        if(hardwareType === HardwareType.MangoPi){
+
+        if(hdType === HardwareType.MangoPi){
           returnObject.data.board.manufacturer = "MangoPi";
           returnObject.data.board.model = "MangoPi MCore";
           returnObject.data.board.serial = serialNumber;
           returnObject.data.board.type = "mangopi";
           returnObject.data.board.cpu.manufacturer = "Allwinner Technology Co";
           returnObject.data.board.cpu.processor = "H316 or H616";
-        }else if(hardwareType === HardwareType.PI4B || hardwareType === HardwareType.CM4){
+        }else if(hdType === HardwareType.PI4B || hdType === HardwareType.CM4){
           returnObject.data.board.type = systemData.raspberry.type;
         }
         
