@@ -21,7 +21,7 @@
 import { exec } from 'child_process';
 import util from 'util';
 import { createApiObj, ApiCode } from '../../common/api.js';
-import { changetoRWSystem, changetoROSystem, sleep } from '../../common/tool.js';
+import { changetoRWSystem, changetoROSystem, sleep, getSystemType } from '../../common/tool.js';
 
 const execAsync = util.promisify(exec);
 
@@ -101,16 +101,20 @@ async function connectWifi(req, res, next) {
   let rwChanged = false;
   let roRecovered = false;
   let prepPerformed = false;
+  let originalState = 'error';
   try {
     const { ssid, password } = req.body || {};
 
-    // 进入 API 即尝试切换为可写（只读系统需要）
-    try { rwChanged = changetoRWSystem(); } catch {}
+    // 仅当根分区为只读时才切换为可写
+    try { originalState = getSystemType(); } catch { }
+    if (originalState === 'ro') {
+      try { rwChanged = changetoRWSystem(); } catch { }
+    }
 
     if (!ssid) {
       returnObject.code = ApiCode.BAD_REQUEST;
       returnObject.msg = 'ssid required';
-      returnObject.data = { prepPerformed: false, rwChanged };
+      returnObject.data = { connected: false };
       return; // 在 finally 中统一输出
     }
 
@@ -121,23 +125,26 @@ async function connectWifi(req, res, next) {
         await execAsync('systemctl restart NetworkManager');
         await sleep(1500); // 等待 NM 重新加载
         prepPerformed = true;
-      } catch {}
+      } catch { }
     }
 
     const escapedSsid = ssid.replace(/"/g, '\\"');
     const escapedPwd = (password || '').replace(/"/g, '\\"');
     const cmd = password ? `nmcli device wifi connect "${escapedSsid}" password "${escapedPwd}"` : `nmcli device wifi connect "${escapedSsid}"`;
-    const { stdout, stderr } = await execAsync(cmd);
-    returnObject.data = { output: stdout.trim(), error: stderr.trim(), prepPerformed, rwChanged };
+    await execAsync(cmd);
+    returnObject.data = { connected: true };
     returnObject.code = ApiCode.OK;
   } catch (error) {
     returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
     returnObject.msg = error?.message || '';
-    if (!returnObject.data) returnObject.data = { prepPerformed: false, rwChanged };
+    // 明确返回连接失败
+    returnObject.data = { connected: false };
   } finally {
-    try { roRecovered = changetoROSystem(); } catch {}
-    if (!returnObject.data) returnObject.data = {};
-    returnObject.data.roRecovered = roRecovered;
+    // 仅当最初是只读时才恢复为只读
+    if (originalState === 'ro') {
+      try { roRecovered = changetoROSystem(); } catch { }
+    }
+    // 返回体仅包含连接是否成功
     if (!res.headersSent) res.json(returnObject);
   }
 }
@@ -147,16 +154,20 @@ async function disconnectWifi(req, res, next) {
   let rwChanged = false;
   let roRecovered = false;
   try {
-    try { rwChanged = changetoRWSystem(); } catch {}
+    let originalState = 'error';
+    try { originalState = getSystemType(); } catch { }
+    if (originalState === 'ro') {
+      try { rwChanged = changetoRWSystem(); } catch { }
+    }
     const { ssid } = req.body || {};
     if (ssid) {
       const escaped = ssid.replace(/"/g, '\\"');
-      try { await execAsync(`nmcli connection down id "${escaped}"`); } catch {}
+      try { await execAsync(`nmcli connection down id "${escaped}"`); } catch { }
     } else {
       try {
         const cmd = "nmcli connection down id $(nmcli -t -f NAME,TYPE connection show --active | awk -F: '" + '$2=="wifi" {print $1; exit}' + "')";
         await execAsync(cmd);
-      } catch {}
+      } catch { }
     }
     returnObject.code = ApiCode.OK;
     returnObject.msg = 'disconnected';
@@ -166,7 +177,13 @@ async function disconnectWifi(req, res, next) {
     returnObject.msg = error.message;
     returnObject.data = { rwChanged };
   } finally {
-    try { roRecovered = changetoROSystem(); } catch {}
+    // 仅当最初是只读时才恢复为只读
+    try {
+      const st = getSystemType();
+      if (st === 'ro') {
+        try { roRecovered = changetoROSystem(); } catch { }
+      }
+    } catch { }
     if (!returnObject.data) returnObject.data = {}; // ensure object
     returnObject.data.roRecovered = roRecovered;
     if (!res.headersSent) res.json(returnObject);
