@@ -65,6 +65,7 @@ import {apiGetSerailDevice, apiSetSerailDevice} from './serial.route.js';
 import { apiGetACLState, apiAddList, apiDelete, apiChangeACLMode } from './access_control_list.route.js';
 import { apiUpdateUrlConduct, apiActiveConduct, apiGetConducState } from './code_of_conduct.js';
 import { scanWifi, connectWifi, disconnectWifi, wifiStatus } from './wifi.route.js';
+import { listInterfaces, getInterfaceConfig, setStaticIPv4, setDHCPv4 } from './ip.route.js';
 
 /**
  * Array of route objects.
@@ -219,6 +220,12 @@ const routes = [
   { path: '/api/wifi/status', handler: wifiStatus, method: 'get' },
   { path: '/api/wifi/connect', handler: connectWifi, method: 'post' },
   { path: '/api/wifi/disconnect', handler: disconnectWifi, method: 'post' },
+  
+  // ip (NetworkManager IPv4)
+  { path: '/api/ip/interfaces', handler: listInterfaces, method: 'get' },
+  { path: '/api/ip/:iface', handler: getInterfaceConfig, method: 'get' },
+  { path: '/api/ip/:iface/static', handler: setStaticIPv4, method: 'post' },
+  { path: '/api/ip/:iface/dhcp', handler: setDHCPv4, method: 'post' },
   
 ];
 
