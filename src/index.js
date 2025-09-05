@@ -115,12 +115,10 @@ function startSwitch() {
 }
 
 function startHid() {
-  const { hid,msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+  const { hid } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
   if (hid.enable === true) {
     const hidHandle = new HID();
-    const mouseMode = hid.mouseMode;
-    const msdEnable = msd.enable;
-    hidHandle.startService(mouseMode,msdEnable);
+    hidHandle.startService();
   }
 }
 

@@ -67,7 +67,7 @@ class ModuleApp extends Module {
       });
 
       this._app.stderr.on('data', (data) => {
-        logger.trace(`${this._name} API stderr: ${data}`);
+        logger.error(`${this._name} API stderr: ${data}`);
       });
 
       this._app.on('error', (err) => {

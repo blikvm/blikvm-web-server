@@ -18,7 +18,7 @@ function getHardwareTypeForConfig() {
 const hardware = getHardwareTypeForConfig();
 
 const defaultConfig = {
-    "version": 8,
+    "version": 9,
     "log": {
       "console": {
         "enabled": true,
@@ -110,6 +110,12 @@ const defaultConfig = {
         "enabled": false,
         "wheelReverse": false,
         "mouse_sensitivity": 0.3
+      },
+      "identity": {
+        "idVendor": "0x1d6b",
+        "idProduct": "0x0106",
+        "manufacturer": "BliKVM",
+        "product": "Multifunction USB Device"
       }
     },
     "prometheus":{

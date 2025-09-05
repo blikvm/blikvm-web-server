@@ -34,6 +34,93 @@ import Logger from '../../log/logger.js';
 
 const logger = new Logger();
 
+// Normalize VID/PID input: accept number or string (with/without 0x), 1-4 hex digits, return '0x' + 4-digit lower hex
+function normalizeHexId(value, fieldName) {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  // If numeric-like
+  if (/^\d+$/.test(s)) {
+    const num = Number(s);
+    if (!Number.isInteger(num) || num < 0 || num > 0xFFFF) {
+      throw new Error(`${fieldName} out of range`);
+    }
+    return `0x${num.toString(16).padStart(4, '0')}`;
+  }
+  // 0x-prefixed or plain hex up to 4 digits
+  const m = s.match(/^(?:0x)?([0-9a-fA-F]{1,4})$/);
+  if (!m) throw new Error(`${fieldName} must be 1-4 hex digits (optional 0x)`);
+  const hex = m[1];
+  return `0x${hex.toLowerCase().padStart(4, '0')}`;
+}
+
+function normalizeNonEmptyString(value, fieldName, maxLen = 64) {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  if (!s) throw new Error(`${fieldName} cannot be empty`);
+  if (s.length > maxLen) throw new Error(`${fieldName} too long (>${maxLen})`);
+  return s;
+}
+
+async function apiHIDUpdateIdentity(req, res, next) {
+  try {
+    const ret = createApiObj();
+    const { idVendor, idProduct, manufacturer, product } = req.body || {};
+
+    if (
+      idVendor === undefined &&
+      idProduct === undefined &&
+      manufacturer === undefined &&
+      product === undefined
+    ) {
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = 'no fields to update';
+      return res.json(ret);
+    }
+
+    let newVid = null, newPid = null, newManu = null, newProd = null;
+    try {
+      if (idVendor !== undefined) newVid = normalizeHexId(idVendor, 'idVendor');
+      if (idProduct !== undefined) newPid = normalizeHexId(idProduct, 'idProduct');
+      if (manufacturer !== undefined) newManu = normalizeNonEmptyString(manufacturer, 'manufacturer');
+      if (product !== undefined) newProd = normalizeNonEmptyString(product, 'product');
+    } catch (e) {
+      ret.code = ApiCode.INVALID_INPUT_PARAM;
+      ret.msg = e.message;
+      return res.json(ret);
+    }
+
+    await writeJsonAtomic(CONFIG_PATH, (cfg) => {
+      cfg.hid = cfg.hid || {};
+      cfg.hid.identity = cfg.hid.identity || {};
+      if (newVid !== null) cfg.hid.identity.idVendor = newVid;
+      if (newPid !== null) cfg.hid.identity.idProduct = newPid;
+      if (newManu !== null) cfg.hid.identity.manufacturer = newManu;
+      if (newProd !== null) cfg.hid.identity.product = newProd;
+    });
+
+    const { hid } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    ret.code = ApiCode.OK;
+    ret.msg = 'hid identity updated';
+    ret.data = hid.identity;
+    res.json(ret);
+  } catch (err) {
+    next(err);
+  }
+}
+
+function apiHIDGetIdentity(req, res, next) {
+  try {
+    const ret = createApiObj();
+    const { hid } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    ret.code = ApiCode.OK;
+    ret.msg = '';
+    ret.data = hid.identity || {};
+    res.json(ret);
+  } catch (err) {
+    next(err);
+  }
+}
+
 function apiEnableHID(req, res, next) {
   try {
     const returnObject = createApiObj();
@@ -43,14 +130,9 @@ function apiEnableHID(req, res, next) {
     const keyboard = new Keyboard();
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     let msdEnable;
-    if(config.msd.enable === true){
-      msdEnable = 'enable';
-    }else{
-      msdEnable = 'disable';
-    }
     if (action === 'enable') {
       hid
-        .startService(config.hid.mouseMode,msdEnable)
+        .startService()
         .then(() => {
           mouse.open();
           keyboard.open();
@@ -303,5 +385,5 @@ async function apiHIDLoopUpdate(req, res, next) {
 
 
 export { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopStatus,apiHIDLoopBlock,apiKeyboardPasteLanguage,
-  apiHIDLoopActive, apiHIDLoopUpdate
+  apiHIDLoopActive, apiHIDLoopUpdate, apiHIDUpdateIdentity, apiHIDGetIdentity
  };

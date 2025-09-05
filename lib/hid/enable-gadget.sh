@@ -50,6 +50,41 @@ USB_ALL_FUNCTIONS_DIR="functions/*"
 USB_MSD_DIR="/mnt/msd/ventoy"
 MSD_FILE="none.txt"
 
+# Default identification values (can be overridden by args)
+USB_ID_VENDOR_DEFAULT="0x1d6b"         # Linux Foundation (demo)
+USB_ID_PRODUCT_DEFAULT="0x0106"        # Multifunction Composite Gadget (demo)
+USB_MANUFACTURER_DEFAULT="BliKVM"
+USB_PRODUCT_DEFAULT="Multifunction USB Device"
+
+# Effective values (initialized to defaults)
+USB_ID_VENDOR="$USB_ID_VENDOR_DEFAULT"
+USB_ID_PRODUCT="$USB_ID_PRODUCT_DEFAULT"
+USB_MANUFACTURER="$USB_MANUFACTURER_DEFAULT"
+USB_PRODUCT="$USB_PRODUCT_DEFAULT"
+
+# Early parse for identification overrides: idVendor/vid, idProduct/pid, manufacturer, product
+for arg in "$@"; do
+  case $arg in
+    idVendor=*|vid=*)
+      USB_ID_VENDOR="${arg#*=}"
+      ;;
+    idProduct=*|pid=*)
+      USB_ID_PRODUCT="${arg#*=}"
+      ;;
+    manufacturer=*)
+      USB_MANUFACTURER="${arg#*=}"
+      ;;
+    product=*)
+      USB_PRODUCT="${arg#*=}"
+      ;;
+    *) ;;
+  esac
+done
+
+# Normalize hex format for VID/PID if missing 0x prefix
+if [[ ! "$USB_ID_VENDOR" =~ ^0[xX] ]]; then USB_ID_VENDOR="0x${USB_ID_VENDOR}"; fi
+if [[ ! "$USB_ID_PRODUCT" =~ ^0[xX] ]]; then USB_ID_PRODUCT="0x${USB_ID_PRODUCT}"; fi
+
 modprobe libcomposite
 
 #modprobe configfs
@@ -59,15 +94,15 @@ cd "${USB_GADGET_PATH}"
 mkdir -p "${USB_DEVICE_DIR}"
 cd "${USB_DEVICE_DIR}"
 
-echo 0x1d6b > idVendor  # Linux Foundation
-echo 0x0106 > idProduct # Multifunction Composite Gadget
-echo 0x0100 > bcdDevice # v1.0.0
-echo 0x0200 > bcdUSB    # USB2
+echo "$USB_ID_VENDOR" > idVendor   # Vendor ID
+echo "$USB_ID_PRODUCT" > idProduct # Product ID
+echo 0x0100 > bcdDevice             # v1.0.0
+echo 0x0200 > bcdUSB                # USB2
 
 mkdir -p "$USB_STRINGS_DIR"
 echo "6b65796d696d6570690" > "${USB_STRINGS_DIR}/serialnumber"
-echo "smart-kvm" > "${USB_STRINGS_DIR}/manufacturer"
-echo "Multifunction USB Device" > "${USB_STRINGS_DIR}/product"
+echo "$USB_MANUFACTURER" > "${USB_STRINGS_DIR}/manufacturer"
+echo "$USB_PRODUCT" > "${USB_STRINGS_DIR}/product"
 
 # Keyboard
 mkdir -p "$USB_KEYBOARD_FUNCTIONS_DIR"
@@ -245,7 +280,7 @@ else
 fi
 
   #MSD
-if [[ $msd == "enable" ]]; then
+if [[ $msd == "true" ]]; then
   mkdir -p "$USB_MASS_STORAGE_FUNCTIONS_DIR"
   #config msd paramter
   shopt -s nullglob

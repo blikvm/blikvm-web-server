@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "log": {
     "console": {
       "enabled": true,
@@ -44,7 +44,7 @@
     "shell": "./lib/kvmd-video.sh",
     "bin": "./lib/pi/ustreamer.bin",
     "fps": 30,
-    "quality": 10,
+    "quality": 60,
     "kbps": 2000,
     "gop": 60,
     "resolution": "1920x1080",
@@ -64,7 +64,7 @@
     "onBootTime": 3600,
     "cycleInterval": 60,
     "displayTime": 10,
-    "secondaryIP": "wg0"
+    "secondaryIP": ""
   },
   "atx": {
     "controlSockFilePath": "/var/blikvm/atx.sock",
@@ -94,32 +94,15 @@
       "mouse_sensitivity": 0.3,
       "wheelReverse": false
     },
-    "shortcuts": {
-      "Ctrl+Alt+Del": [
-        "ControlLeft",
-        "AltLeft",
-        "Delete"
-      ],
-      "Alt+Tab": [
-        "AltLeft",
-        "Tab"
-      ],
-      "Alt+F4": [
-        "AltLeft",
-        "F4"
-      ],
-      "Alt+Enter": [
-        "AltLeft",
-        "Enter"
-      ],
-      "Ctrl+W": [
-        "ControlLeft",
-        "KeyW"
-      ]
+    "identity": {
+      "idVendor": "0x1d6b",
+      "idProduct": "0x0106",
+      "manufacturer": "BliKVMtest",
+      "product": "Multifunction USB Device"
     }
   },
   "prometheus": {
-    "enabled": false,
+    "enabled": true,
     "username": "admin",
     "password": "admin",
     "interval": 15

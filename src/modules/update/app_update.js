@@ -188,6 +188,19 @@ class AppConfigUpdate {
     return data;
   }
 
+  upgradeV8toV9(data){
+    if(data.hid.identity === undefined ){
+      data.hid.identity = {
+        idVendor: "0x1d6b",
+        idProduct: "0x0106",
+        manufacturer: "BliKVM",
+        product: "Multifunction USB Device"
+      };
+    }
+    data.version = 9;
+    return data;
+  }
+
 
   // 通用升级函数，检查当前版本并逐步升级
   upgradeData(data) {
@@ -218,6 +231,10 @@ class AppConfigUpdate {
     if( data.version === 7 ){
       logger.info('Update from version 7 to version 8...');
       data = this.upgradeV7toV8(data);
+    }
+    if( data.version === 8 ){ 
+      logger.info('Update from version 8 to version 9...');
+      data = this.upgradeV8toV9(data);
     }
     return data;
   }

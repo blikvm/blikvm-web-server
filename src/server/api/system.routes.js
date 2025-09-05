@@ -34,6 +34,64 @@ const logger = new Logger();
 
 // Use Notify singleton throughout
 
+// RFC-1123-ish hostname validator: labels 1-63 chars, letters/digits/hyphen, no leading/trailing hyphen, total <= 253
+function isValidHostname(name) {
+  if (typeof name !== 'string') return false;
+  const hostname = name.trim();
+  if (hostname.length === 0 || hostname.length > 253) return false;
+  const label = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/;
+  const parts = hostname.split('.');
+  return parts.every(p => label.test(p));
+}
+
+// Ensure /etc/hosts has a 127.0.1.1 line mapping to the new hostname (short + FQDN),
+// and replace old hostname tokens if present. No-op if content already matches.
+function ensureEtcHostsHostname(oldHostname, newHostname) {
+  try {
+    const hostsPath = '/etc/hosts';
+    const exists = fs.existsSync(hostsPath);
+    const original = exists ? fs.readFileSync(hostsPath, 'utf8') : '';
+    const lines = original.split(/\r?\n/);
+
+    const shortNew = String(newHostname).split('.')[0];
+    const shortOld = oldHostname ? String(oldHostname).split('.')[0] : null;
+
+    let found12701 = false;
+    const updated = lines.map(line => {
+      // Keep comments/blank lines unchanged
+      if (/^\s*#/.test(line) || line.trim() === '') return line;
+      const m = line.match(/^\s*(127\.0\.1\.1)\s+(.*)$/);
+      if (!m) return line;
+      found12701 = true;
+      const ip = m[1];
+      const rest = m[2].trim();
+      const tokens = rest.split(/\s+/);
+      // Remove old hostname tokens if present
+      const filtered = tokens.filter(t => t !== oldHostname && t !== shortOld);
+      // Prepend new short + fqdn, dedup while preserving order
+      const next = [shortNew, newHostname, ...filtered].filter((t, i, arr) => t && arr.indexOf(t) === i);
+      return `${ip} ${next.join(' ')}`;
+    });
+
+    if (!found12701) {
+      // Append a sane default mapping line if none exists
+      updated.push(`127.0.1.1 ${shortNew} ${newHostname}`);
+    }
+
+    const nextContent = updated.join('\n');
+    if (nextContent !== original) {
+      // Atomic-ish write: write temp then replace
+      const tmp = '/etc/.hosts.tmp';
+      fs.writeFileSync(tmp, nextContent, 'utf8');
+      fs.renameSync(tmp, hostsPath);
+      logger.info(`[system] /etc/hosts updated for hostname: ${newHostname}`);
+    }
+  } catch (e) {
+    // Log but do not throw to avoid leaving system in inconsistent RW state
+    logger.error(`[system] Failed to update /etc/hosts: ${e?.message || e}`);
+  }
+}
+
 function apiReboot(req, res, next) {
   try {
     executeCMD('reboot');
@@ -193,8 +251,8 @@ function apiGetDevice(req, res, next) {
 async function apiUpdateHostname(req, res, next){
   try {
     const { hostname } = req.body;
-    if (!hostname || typeof hostname !== 'string' || hostname.trim() === '') {
-      return res.status(400).json({ code: ApiCode.ERROR, message: 'Invalid hostname' });
+    if (!isValidHostname(hostname)) {
+      return res.status(400).json({ code: ApiCode.ERROR, message: 'Invalid hostname (RFC-1123: letters/digits/hyphen, no leading/trailing hyphen, labels <=63, total <=253)' });
     }
 
     // Remember original root mount state and switch to RW if needed
@@ -207,8 +265,20 @@ async function apiUpdateHostname(req, res, next){
     }
 
     try {
-      // Use executeCMD to set hostname
-      await executeCMD(`hostnamectl set-hostname ${hostname}`);
+      // Capture current hostname (short best-effort)
+      let oldHostname = '';
+      try {
+        const osData = await si.osInfo();
+        oldHostname = osData?.hostname || '';
+      } catch (e) {
+        // ignore, continue
+      }
+
+      // Set static hostname to ensure /etc/hostname is updated
+      await executeCMD(`hostnamectl set-hostname --static ${hostname}`);
+
+      // Keep /etc/hosts consistent to avoid sudo: unable to resolve host <name>
+      ensureEtcHostsHostname(oldHostname, hostname);
     } finally {
       // Restore to RO if it was RO before
       if (originalState === 'ro') {

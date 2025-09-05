@@ -56,14 +56,23 @@ class HID extends Module {
 
   // mouseMode: dual relative absolute 
   // msdEnable: enable disable
-  startService(mouseMode, msdEnable) {
+  startService() {
     return new Promise((resolve, reject) => {
       if (!isDeviceFile(this._hidkeyboard) && !isDeviceFile(this._hidmouse)) {
         logger.info(this._hidEnablePath);
-        executeScriptAtPath(this._hidEnablePath, [`mouse_mode=${mouseMode}`, `msd=${msdEnable}`])
+        const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+        const args = [
+          `mouse_mode=${config.hid.mouseMode}`,
+          `msd=${config.msd.enable}`,
+        ];
+        const identity = (config.hid && config.hid.identity) || {};
+        if (identity.idVendor) args.push(`idVendor=${identity.idVendor}`);
+        if (identity.idProduct) args.push(`idProduct=${identity.idProduct}`);
+        if (identity.manufacturer) args.push(`manufacturer=${identity.manufacturer}`);
+        if (identity.product) args.push(`product=${identity.product}`);
+        executeScriptAtPath(this._hidEnablePath, args)
           .then(() => {
             this._state = ModuleState.RUNNING;
-            const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
             if (config.hid.enable !== true) {
               writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = true; });
             }
