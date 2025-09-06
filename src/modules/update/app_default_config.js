@@ -19,6 +19,7 @@ const hardware = getHardwareTypeForConfig();
 
 const defaultConfig = {
     "version": 9,
+    "deviceVersion": "BliKVM",
     "log": {
       "console": {
         "enabled": true,

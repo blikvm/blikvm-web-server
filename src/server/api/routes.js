@@ -47,7 +47,7 @@ import {
   apiSwitchUpdate,
   apiSwitchChannel
 } from './switch.route.js';
-import { apiReboot, apiGetDevice, apiGetSystemInfo, apiGetLogs, apiUpdateHostname } from './system.routes.js';
+import { apiReboot, apiGetSystemInfo, apiGetLogs, apiUpdateHostname } from './system.routes.js';
 import { apiOcr } from './ocr.route.js';
 import { apiWakeOnLan, apiSendWakeOnLanList, apiGetWakeOnLanList, apiAddWakeOnLan, apiDeleteWakeOnLan} from './wol.route.js'; 
 import { apiMouseJiggler, apiMouseEvent } from './mouse.route.js';
@@ -153,7 +153,6 @@ const routes = [
 
   //system
   { path: '/api/reboot', handler: apiReboot, method: 'post' },
-  { path: '/api/device', handler: apiGetDevice, method: 'post' },
   { path: '/api/systeminfo', handler: apiGetSystemInfo, method: 'get' },
   { path: '/api/hostname', handler: apiUpdateHostname, method: 'post' },
   { path: '/api/logs', handler: apiGetLogs, method: 'post' },

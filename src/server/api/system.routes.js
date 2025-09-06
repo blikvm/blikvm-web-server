@@ -21,7 +21,7 @@
 *****************************************************************************/
 import { CONFIG_PATH, UTF8 } from '../../common/constants.js';
 import { ApiCode, createApiObj } from '../../common/api.js';
-import { getSystemInfo, executeCMD, getHardwareType, changetoRWSystem, changetoROSystem, getSystemType } from '../../common/tool.js';
+import { getSystemInfo, executeCMD, changetoRWSystem, changetoROSystem, getSystemType } from '../../common/tool.js';
 import { HardwareType } from '../../common/enums.js';
 import fs from 'fs';
 import path from 'path';
@@ -148,16 +148,7 @@ function apiGetSystemInfo(req, res, next) {
         .filter(fs => fs.fs.startsWith('/dev/mmcblk0'))
         .reduce((total, partition) => total + partition.available, 0);
         const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-
-        const hdType  = getHardwareType();
-        let deviceVersion = '';
-        if( hdType === HardwareType.MangoPi){
-          deviceVersion = "BliKVM v4 Allwinner";
-        }else if(hdType === HardwareType.PI4B ){
-          deviceVersion = "BliKVM v3 HAT";
-        }else if( hdType === HardwareType.CM4 ){
-          deviceVersion = "BliKVM CM4";
-        }
+        let deviceVersion = config.deviceVersion;
 
         returnObject.data = {
           cpuLoad: systemInfo.cpuLoad,
@@ -197,7 +188,7 @@ function apiGetSystemInfo(req, res, next) {
           },
           network: netDataFilter
         };
-
+        const hdType = getSystemType();
         if(hdType === HardwareType.MangoPi){
           returnObject.data.board.manufacturer = "MangoPi";
           returnObject.data.board.model = "MangoPi MCore";
@@ -214,35 +205,6 @@ function apiGetSystemInfo(req, res, next) {
       .catch(error => {
         next(error);
       });
-  } catch (error) {
-    next(error);
-  }
-}
-
-function apiGetDevice(req, res, next) {
-  try {
-    const returnObject = createApiObj();
-    returnObject.code = ApiCode.OK;
-    const hardwareType = getHardwareType();
-    let type = '';
-    let deviceType = '';
-    if( hardwareType === HardwareType.MangoPi){
-      type ='mangoPi';
-      deviceType = "BliKVM v4 Allwinner";
-    }else if(hardwareType === HardwareType.PI4B ){
-      type = 'pi';
-      deviceType = "BliKVM v3 HAT";
-    }else if( hardwareType === HardwareType.CM4 ){
-      type = 'pi';
-      deviceType = "BliKVM CM4";
-    }
-    returnObject.data = {
-      device: "KVM-over-IP",
-      deviceType: deviceType,
-      hardwareType: type,
-      manufacturer: "BliCube LLC"
-    };
-    res.json(returnObject);
   } catch (error) {
     next(error);
   }
@@ -348,4 +310,4 @@ const apiGetLogs = async (req, res, next) => {
 
 
 
-export { apiReboot, apiGetDevice, apiGetSystemInfo, apiGetLogs, apiUpdateHostname };
+export { apiReboot, apiGetSystemInfo, apiGetLogs, apiUpdateHostname };

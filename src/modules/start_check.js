@@ -4,6 +4,8 @@ import si from 'systeminformation';
 import { readJson, writeJsonAtomic } from '../common/atomic-file.js';
 import { CONFIG_PATH } from '../common/constants.js';
 import Logger from '../log/logger.js';
+import { getHardwareType } from '../common/tool.js';
+import { HardwareType } from '../common/enums.js';
 
 const logger = new Logger();
 
@@ -55,6 +57,47 @@ export async function startCheck() {
     if (results.secondaryIP.updated) {
         logger.info('start_check: secondaryIP adjusted');
     }
+    // 设备型号标准化
+    results.deviceVersion = await normalizeDeviceVersion();
     return results;
 }
+
+// 独立封装：标准化 config.app.json 中的 deviceVersion 字段
+export async function normalizeDeviceVersion() {
+    try {
+        const hw = getHardwareType(); // 同步函数
+        const config = await readJson(CONFIG_PATH);
+        const current = config?.deviceVersion || '';
+        let expected = null;
+        switch (hw) {
+            case HardwareType.PI4B:
+                expected = 'BliKVM v3 HAT';
+                break;
+            case HardwareType.CM4:
+                expected = 'BliKVM CM4';
+                break;
+            case HardwareType.MangoPi:
+                expected = 'BliKVM v4';
+                break;
+            case HardwareType.BliKVMV5CM4:
+                expected = 'BliKVM v5 CM4';
+                break;
+            default:
+                break;
+        }
+        if (expected && current !== expected) {
+            await writeJsonAtomic(CONFIG_PATH, (cfg) => {
+                cfg.deviceVersion = expected;
+            });
+            logger.info(`start_check: deviceVersion normalized from '${current}' to '${expected}'`);
+            return { updated: true, from: current, to: expected };
+        }
+        return { updated: false, value: current || expected };
+    } catch (e) {
+        logger.error('start_check: deviceVersion normalization failed: ' + (e?.message || e));
+        return { updated: false, error: String(e?.message || e) };
+    }
+}
+
+
 

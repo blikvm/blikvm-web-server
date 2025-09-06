@@ -1,5 +1,6 @@
 {
   "version": 9,
+  "deviceVersion": "BliKVM v3 HAT",
   "log": {
     "console": {
       "enabled": true,

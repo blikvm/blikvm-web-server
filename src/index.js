@@ -20,8 +20,6 @@
 *****************************************************************************/
 import fs from 'fs';
 import Logger from './log/logger.js';
-import { getHardwareType } from './common/tool.js';
-import { HardwareType } from './common/enums.js';
 import HttpServer from './server/server.js';
 import Video from './modules/video/video.js';
 import KVMDMain from './modules/kvmd/kvmd_main.js';

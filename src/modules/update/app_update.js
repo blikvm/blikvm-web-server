@@ -197,6 +197,9 @@ class AppConfigUpdate {
         product: "Multifunction USB Device"
       };
     }
+    if(data.deviceVersion === undefined ){
+      data.deviceVersion = "BliKVM";
+    }
     data.version = 9;
     return data;
   }

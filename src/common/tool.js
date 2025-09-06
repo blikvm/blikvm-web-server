@@ -27,6 +27,8 @@
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import readEepromJson from './eepromReader.js';
 import { v4 } from 'uuid';
 import { HardwareType } from './enums.js';
 import { execSync, exec } from 'child_process';
@@ -37,6 +39,23 @@ import { createApiObj } from './api.js';
 const logger = new Logger();
 
 let hardwareSysType = HardwareType.UNKNOWN;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const EEPROM_V5_MATCH = 'BliKVM v5 CM4';
+let eepromDetectStarted = false;
+// 简易同步等待 Promise 的工具：使用 SharedArrayBuffer + Atomics.wait 实现阻塞
+function runSync(promise) {
+  const sab = new SharedArrayBuffer(4);
+  const ia = new Int32Array(sab);
+  let result; let error;
+  promise.then(r => { result = r; Atomics.store(ia, 0, 1); Atomics.notify(ia, 0); })
+         .catch(e => { error = e; Atomics.store(ia, 0, 1); Atomics.notify(ia, 0); });
+  while (Atomics.load(ia, 0) === 0) {
+    Atomics.wait(ia, 0, 0, 50); // 50ms 轮询唤醒
+  }
+  if (error) throw error;
+  return result;
+}
 
 /**
  * Checks if a directory exists at the specified path.
@@ -149,6 +168,17 @@ function getHardwareType() {
       hardwareSysType = HardwareType.MangoPi;
     } else if (modelOutput.includes(piCM4Sys)) {
       hardwareSysType = HardwareType.CM4;
+      if (!eepromDetectStarted) {
+        eepromDetectStarted = true;
+        try {
+          const meta = runSync(readEepromJson({ length: 256, returnMeta: true }));
+          if (meta && meta.present && meta.json && meta.json.device_version === EEPROM_V5_MATCH) {
+            hardwareSysType = HardwareType.BliKVMV5CM4;
+          }
+        } catch (e) {
+          // 读取失败保持 CM4
+        }
+      }
     }
   }
   return hardwareSysType;
