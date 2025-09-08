@@ -275,19 +275,6 @@ function apiKeyboardShortcuts(req, res, next) {
   }
 }
 
-function apiGetShortcutsConfig(req, res, next) {
-  try {
-    const returnObject = createApiObj();
-    const { hid } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    returnObject.code = ApiCode.OK;
-    returnObject.msg = 'shortcuts ok';
-    returnObject.data = hid.shortcuts;
-    res.json(returnObject);
-  } catch (err) {
-    next(err);
-  }
-}
-
 function apiHIDLoopBlock(req, res, next) {
   try{
     const { blockFlag } = req.body; 
@@ -384,6 +371,6 @@ async function apiHIDLoopUpdate(req, res, next) {
 
 
 
-export { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiGetShortcutsConfig, apiHIDLoopStatus,apiHIDLoopBlock,apiKeyboardPasteLanguage,
+export { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiHIDLoopStatus,apiHIDLoopBlock,apiKeyboardPasteLanguage,
   apiHIDLoopActive, apiHIDLoopUpdate, apiHIDUpdateIdentity, apiHIDGetIdentity
  };
