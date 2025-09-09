@@ -35,11 +35,11 @@ import { WebSocketServer, WebSocket } from 'ws';
 import Mouse from './mouse.js';
 import Keyboard from './keyboard.js';
 import { ApiCode, createApiObj } from '../common/api.js';
-import { CONFIG_PATH, UTF8, JWT_SECRET,ACL_PATH } from '../common/constants.js';
+import { CONFIG_PATH, UTF8, JWT_SECRET, ACL_PATH } from '../common/constants.js';
 import { fileExists, processPing, getSystemInfo } from '../common/tool.js';
 import path from 'path';
 import { apiGetAuthState, apiLogin } from './api/login.route.js';
-import {apiDownloadFile} from './api/download.route.js';
+import { apiDownloadFile } from './api/download.route.js';
 import jwt from 'jsonwebtoken';
 import HID from '../modules/kvmd/kvmd_hid.js';
 import { wsGetVideoState } from './api/video.route.js';
@@ -51,6 +51,8 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import httpProxy from 'http-proxy';
 import { PrometheusMetrics, BasicAuthObj } from './prometheus.js';
 import { createSerialServer } from './serialServer.js';
+import os from 'os';
+import mdns from 'multicast-dns';
 
 const logger = new Logger();
 
@@ -181,6 +183,18 @@ class HttpServer {
   startService() {
     return new Promise((resolve, reject) => {
       this._state = HttpServerState.STARTING;
+
+      // start app-level mDNS responder based on config (server.mdnsEnabled)
+      if (this._mdnsEnabled) {
+        try {
+          this._startMdns();
+        } catch (e) {
+          logger.warn(`mDNS start failed: ${e.message}`);
+        }
+      } else {
+        logger.info('mDNS disabled by config');
+      }
+
       if (this._protocol === 'https') {
         this._server.listen(this._httpsServerPort, () => {
           logger.info(
@@ -220,6 +234,12 @@ class HttpServer {
   closeService() {
     return new Promise((resolve, reject) => {
       this._state = HttpServerState.STOPPING;
+
+      // stop mDNS
+      if (this._mdns) {
+        try { this._mdns.destroy(); } catch (e) { }
+        this._mdns = null;
+      }
 
       const wsClientNumber = this._wss.clients.size;
       this._wss.clients.forEach((client) => {
@@ -282,13 +302,13 @@ class HttpServer {
   _extractIPList(config) {
     const mode = config.mode; // 获取 mode 值
     let ipList = [];
-  
+
     if (mode === "allow") {
       ipList = config.allowList.item.map((entry) => entry.ip); // 提取 allowList 中的 IP
     } else if (mode === "block") {
       ipList = config.blockList.item.map((entry) => entry.ip); // 提取 blockList 中的 IP
     }
-  
+
     return ipList;
   }
 
@@ -298,17 +318,18 @@ class HttpServer {
    */
   _init() {
     const { server, video, msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    const acl_config =  JSON.parse(fs.readFileSync(ACL_PATH, UTF8));
+    const acl_config = JSON.parse(fs.readFileSync(ACL_PATH, UTF8));
     this._protocol = server.protocol;
     this._httpsServerPort = server.https_port || 443;
     this._httpServerPort = server.http_port || 80;
+    this._mdnsEnabled = server.mdnsEnabled !== undefined ? !!server.mdnsEnabled : true;
     G_AuthState = server.auth;
     const app = express();
 
     if (acl_config.mode === "allow") {
       const IP_WHITELIST = this._extractIPList(acl_config);
       app.use(this._ipWhitelistMiddleware(IP_WHITELIST));
-    }else if(acl_config.mode === "block") {
+    } else if (acl_config.mode === "block") {
       const IP_BLACKLIST = this._extractIPList(acl_config);
       app.use(this._ipBlacklistMiddleware(IP_BLACKLIST));
     }
@@ -393,7 +414,10 @@ class HttpServer {
       }, app);
 
       this._httpServer = http.createServer((req, res) => {
-        const host = req.headers.host.replace(/:\d+$/, `${this._httpsServerPortps}`);
+        let host = (req.headers.host || '').replace(/:\d+$/, '');
+        if (this._httpsServerPort && this._httpsServerPort !== 443) {
+          host = `${host}:${this._httpsServerPort}`;
+        }
         res.writeHead(301, { Location: `https://${host}${req.url}` });
         res.end();
       });
@@ -510,7 +534,7 @@ class HttpServer {
    */
   _websocketServerConnectionEvent(ws, req) {
     try {
-  Notify.initWebSocket(ws);
+      Notify.initWebSocket(ws);
 
       logger.info(`WebSocket Client connected, total clients: ${this._wss.clients.size}`);
 
@@ -646,11 +670,64 @@ class HttpServer {
    */
   _httpErrorMiddle(err, req, res, next) {
     logger.error(`Error handling HTTP request: ${err}`);
-  Notify.error(`Error handling HTTP request: ${err}`);
+    Notify.error(`Error handling HTTP request: ${err}`);
     const ret = createApiObj();
     ret.code = ApiCode.INTERNAL_SERVER_ERROR;
     ret.msg = err.message;
     res.status(500).json(ret);
+  }
+
+  _startMdns() {
+    // Determine and cache mDNS hostname (env > system hostname > default)
+    if (!this._mdnsName) {
+      let hn = process.env.MDNS_NAME || os.hostname() || 'blikvm';
+      // strip trailing .local and sanitize to RFC-952-ish hostname (letters, digits, hyphen)
+      hn = hn.replace(/\.local$/i, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      if (!hn) hn = 'blikvm';
+      this._mdnsName = hn;
+    }
+
+    // Advertise A record for <name>.local pointing to local IPv4s
+    const name = `${this._mdnsName}.local`;
+    const addresses = [];
+    const ifaces = os.networkInterfaces();
+    for (const key of Object.keys(ifaces)) {
+      for (const addr of ifaces[key]) {
+        if (!addr.internal && addr.family === 'IPv4') {
+          addresses.push(addr.address);
+        }
+      }
+    }
+    if (addresses.length === 0) {
+      logger.warn('mDNS: no non-internal IPv4 address found; skipping announce');
+      return;
+    }
+    this._mdns = mdns();
+
+    // Respond to queries for our name
+    this._mdns.on('query', (q) => {
+      q.questions.forEach((qq) => {
+        if (qq.name === name && (qq.type === 'A' || qq.type === 'ANY')) {
+          const answers = addresses.map((ip) => ({
+            name,
+            type: 'A',
+            ttl: 120,
+            data: ip
+          }));
+          this._mdns.respond({ answers });
+        }
+      });
+    });
+
+    // Proactively announce once on start
+    const answers = addresses.map((ip) => ({ name, type: 'A', ttl: 120, data: ip }));
+    try { this._mdns.respond({ answers }); } catch { }
+
+    logger.info(`mDNS: advertising ${name} -> ${addresses.join(', ')}`);
   }
 }
 export default HttpServer;

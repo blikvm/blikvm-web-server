@@ -38,7 +38,8 @@
     "ipWhite": {
       "enabled": false,
       "list": []
-    }
+    },
+    "mdnsEnabled": true
   },
   "video": {
     "port": 10004,

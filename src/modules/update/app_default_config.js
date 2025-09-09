@@ -44,6 +44,7 @@ const defaultConfig = {
       "protocol": "https",
       "https_port": 443,
       "http_port": 80,
+      "mdnsEnabled": true,
       "ssl": {
         "key": "./lib/https/key.pem",
         "cert": "./lib/https/cert.pem"

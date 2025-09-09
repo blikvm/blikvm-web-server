@@ -200,6 +200,9 @@ class AppConfigUpdate {
     if(data.deviceVersion === undefined ){
       data.deviceVersion = "BliKVM";
     }
+    if(data.server.mdnsEnabled === undefined ){
+      data.server.mdnsEnabled = true;
+    }
     data.version = 9;
     return data;
   }
