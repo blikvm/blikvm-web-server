@@ -20,7 +20,7 @@
 #                                                                            #
 *****************************************************************************/
 import { apiATXClick, apiATXState,apiActiveState, apiActiveSet} from './atx.route.js';
-import state from './state.route.js';
+import { apiBinState, apiCheckToken} from './state.route.js';
 import { apiVideoControl, apiVideoConfig, apiGetVideoState, apiRecording, apiResolutionChange, apiSnapshot, apiEdidInfo,  apiEdidSet } from './video.route.js';
 import KVMDMain from './kvmd_main.route.js';
 import { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiHIDLoopUpdate, apiHIDLoopStatus, apiKeyboardPasteLanguage, apiHIDLoopActive, apiHIDUpdateIdentity, apiHIDGetIdentity } from './hid.route.js';
@@ -66,6 +66,7 @@ import { apiGetACLState, apiAddList, apiDelete, apiChangeACLMode } from './acces
 import { apiUpdateUrlConduct, apiActiveConduct, apiGetConducState } from './code_of_conduct.js';
 import { scanWifi, connectWifi, disconnectWifi, wifiStatus } from './wifi.route.js';
 import { listInterfaces, getInterfaceConfig, setStaticIPv4, setDHCPv4 } from './ip.route.js';
+import { apiUpdateStream } from './update.route.js';
 
 /**
  * Array of route objects.
@@ -83,7 +84,9 @@ const routes = [
   { path: '/api/atx/click', handler: apiATXClick, method: 'post' },
 
   //state
-  { path: '/api/state', handler: state, method: 'post' },
+  { path: '/api/state', handler: apiBinState, method: 'get' },
+  { path: '/api/check/token', handler: apiCheckToken, method: 'get' },
+  
 
   //video
   { path: '/api/video', handler: apiVideoControl, method: 'post' },
@@ -226,6 +229,9 @@ const routes = [
   { path: '/api/ip/:iface', handler: getInterfaceConfig, method: 'get' },
   { path: '/api/ip/:iface/static', handler: setStaticIPv4, method: 'post' },
   { path: '/api/ip/:iface/dhcp', handler: setDHCPv4, method: 'post' },
+  
+  // update (SSE streaming)
+  { path: '/api/update/stream', handler: apiUpdateStream, method: 'get' },
   
 ];
 

@@ -612,11 +612,24 @@ class HttpServer {
     const requestType = req.method;
     const requestUrl = req.url;
     if (G_AuthState === true) {
-      const authHeader = req.headers.authorization;
-      const token = authHeader && authHeader.split(' ')[1];
-      const decoded = jwt.verify(token, JWT_SECRET);
-      const username = decoded.username;
-      logger.info(`http api request ${requestType} ${requestUrl} by ${username}`);
+      try {
+        const authHeader = req.headers.authorization;
+        let token = authHeader && authHeader.split(' ')[1];
+        if (!token) {
+          // Try to get token from query string (e.g., /path?token=xxx)
+          const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+          token = urlObj.searchParams.get('token') || (req.query && req.query.token) || (req.cookies && req.cookies.token);
+        }
+        if (token) {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          const username = decoded.username;
+          logger.info(`http api request ${requestType} ${requestUrl} by ${username}`);
+        } else {
+          logger.info(`http api request ${requestType} ${requestUrl} (no token)`);
+        }
+      } catch (e) {
+        logger.info(`http api request ${requestType} ${requestUrl} (invalid token)`);
+      }
     } else {
       logger.info(`http api request ${requestType} ${requestUrl}`);
     }
@@ -640,7 +653,15 @@ class HttpServer {
     returnObject.code = ApiCode.INVALID_CREDENTIALS;
 
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+    let token = authHeader && authHeader.split(' ')[1];
+    if (!token) {
+      try {
+        const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        token = urlObj.searchParams.get('token') || (req.query && req.query.token) || (req.cookies && req.cookies.token);
+      } catch (e) {
+        // ignore URL parse errors
+      }
+    }
 
     if (!token) {
       logger.error(`token is null:${req.url}`);

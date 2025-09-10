@@ -39,8 +39,6 @@ import { createApiObj } from './api.js';
 const logger = new Logger();
 
 let hardwareSysType = HardwareType.UNKNOWN;
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const EEPROM_V5_MATCH = 'BliKVM v5 CM4';
 let eepromDetectStarted = false;
 // 简易同步等待 Promise 的工具：使用 SharedArrayBuffer + Atomics.wait 实现阻塞
