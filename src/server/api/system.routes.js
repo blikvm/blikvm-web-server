@@ -21,7 +21,7 @@
 *****************************************************************************/
 import { CONFIG_PATH, UTF8 } from '../../common/constants.js';
 import { ApiCode, createApiObj } from '../../common/api.js';
-import { getSystemInfo, executeCMD, changetoRWSystem, changetoROSystem, getSystemType } from '../../common/tool.js';
+import { getSystemInfo, executeCMD, changetoRWSystem, changetoROSystem, getSystemType, getHardwareType } from '../../common/tool.js';
 import { HardwareType } from '../../common/enums.js';
 import fs from 'fs';
 import path from 'path';
@@ -149,7 +149,7 @@ function apiGetSystemInfo(req, res, next) {
         .reduce((total, partition) => total + partition.available, 0);
         const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
         let deviceVersion = config.deviceVersion;
-
+        console.log('systemData:', systemData);
         returnObject.data = {
           cpuLoad: systemInfo.cpuLoad,
           uptime: systemInfo.uptime,
@@ -188,7 +188,7 @@ function apiGetSystemInfo(req, res, next) {
           },
           network: netDataFilter
         };
-        const hdType = getSystemType();
+        const hdType = getHardwareType();
         if(hdType === HardwareType.MangoPi){
           returnObject.data.board.manufacturer = "MangoPi";
           returnObject.data.board.model = "MangoPi MCore";

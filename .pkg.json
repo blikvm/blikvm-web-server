@@ -8,6 +8,7 @@
     "node_modules/unix-dgram/build/**/*",
     "node_modules/bcrypt/lib/binding/**/*",
     "node_modules/ffi-napi/build/**/*",
-    "node_modules/ref-napi/prebuilds/linux-arm64/node.napi.armv8.node"
+    "node_modules/ref-napi/prebuilds/linux-arm64/node.napi.armv8.node",
+    "node_modules/i2c-bus/build/**/*"
   ]
 }
