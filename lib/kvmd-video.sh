@@ -7,7 +7,7 @@ h616_board="MangoPi Mcore"
 
 # Define board type values
 v3_hat="V3_HAT"
-v2_pcie="V2_PCIE"
+v2_pcie="CM4"
 v4_h616="V4_H616"
 unknown="UNKNOWN"
 

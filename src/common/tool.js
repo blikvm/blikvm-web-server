@@ -41,15 +41,22 @@ const logger = new Logger();
 let hardwareSysType = HardwareType.UNKNOWN;
 const EEPROM_V5_MATCH = 'BliKVM v5 CM4';
 let eepromDetectStarted = false;
-// 简易同步等待 Promise 的工具：使用 SharedArrayBuffer + Atomics.wait 实现阻塞
-function runSync(promise) {
+// 简易同步等待 Promise 的工具：使用 SharedArrayBuffer + Atomics.wait 实现阻塞，并加入超时保护
+function runSync(promise, timeoutMs = parseInt(process.env.EEPROM_SYNC_TIMEOUT_MS || '1500', 10)) {
   const sab = new SharedArrayBuffer(4);
   const ia = new Int32Array(sab);
   let result; let error;
   promise.then(r => { result = r; Atomics.store(ia, 0, 1); Atomics.notify(ia, 0); })
          .catch(e => { error = e; Atomics.store(ia, 0, 1); Atomics.notify(ia, 0); });
+  const start = Date.now();
   while (Atomics.load(ia, 0) === 0) {
-    Atomics.wait(ia, 0, 0, 50); // 50ms 轮询唤醒
+    const elapsed = Date.now() - start;
+    if (elapsed >= timeoutMs) {
+      throw new Error(`runSync timeout after ${timeoutMs}ms`);
+    }
+    // 每次等待不超过剩余时间
+    const waitMs = Math.min(50, Math.max(1, timeoutMs - elapsed));
+    Atomics.wait(ia, 0, 0, waitMs);
   }
   if (error) throw error;
   return result;
@@ -168,13 +175,15 @@ function getHardwareType() {
       hardwareSysType = HardwareType.CM4;
       if (!eepromDetectStarted) {
         eepromDetectStarted = true;
+        if (!fs.existsSync('/dev/i2c-8')) {
+          return hardwareSysType;
+        }
         try {
-          const meta = runSync(readEepromJson({ length: 256, returnMeta: true }));
+          const meta = runSync(readEepromJson({ length: 256, returnMeta: true }), 1000);
           if (meta && meta.present && meta.json && meta.json.device_version === EEPROM_V5_MATCH) {
             hardwareSysType = HardwareType.BliKVMV5CM4;
           }
         } catch (e) {
-          // 读取失败保持 CM4
         }
       }
     }
