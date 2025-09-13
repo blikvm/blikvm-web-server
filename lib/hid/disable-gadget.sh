@@ -1,36 +1,17 @@
-# MIT License
-
-# Copyright (c) 2020 Michael Lynch
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 #!/bin/bash
 
 # Exit on first error.
 set -e
 
 # Echo commands to stdout.
-set -x
+[[ "${VERBOSE:-0}" == "1" ]] && set -x || true
 
 # Treat undefined environment variables as errors.
 set -u
 
 USB_DEVICE_DIR="g1"
+LOCK_FILE="${GADGET_LOCK_FILE:-/run/usb-gadget.lock}"
+FULL_CLEAN=${FULL_CLEAN:-0}
 USB_GADGET_PATH="/sys/kernel/config/usb_gadget"
 USB_DEVICE_PATH="${USB_GADGET_PATH}/${USB_DEVICE_DIR}"
 
@@ -45,45 +26,37 @@ USB_CONFIG_DIR="configs/c.${USB_CONFIG_INDEX}"
 USB_ALL_CONFIGS_DIR="configs/*"
 USB_ALL_FUNCTIONS_DIR="functions/*"
 
-cd "${USB_GADGET_PATH}"
+# Simple logger (stderr)
+log() { echo "[disable-gadget] $*" >&2; }
+error_exit() { log "ERROR: $*"; exit 1; }
 
-if [ ! -d "${USB_DEVICE_DIR}" ]; then
-    echo "Gadget does not exist, quitting."
-    exit 0
+
+cd "${USB_GADGET_PATH}" || error_exit "Failed to change directory to ${USB_GADGET_PATH}"
+
+
+    # Unbind any UDC first (soft disable)
+if [ -d "${USB_DEVICE_PATH}" ] && [ -f "${USB_DEVICE_PATH}/UDC" ]; then
+  CUR=$(cat "${USB_DEVICE_PATH}/UDC" 2>/dev/null || true)
+  if [ -n "$CUR" ]; then
+    log "Unbinding UDC: $CUR"
+    echo "" > "${USB_DEVICE_PATH}/UDC" 2>/dev/null || log "Failed to unbind UDC"
+    sleep 0.15
+  fi
 fi
 
-pushd "${USB_DEVICE_DIR}"
-
-# Disable all gadgets
-if [ -n "$(cat UDC)" ]; then
-  echo "" > UDC
-fi
-
-# Walk items in `configs`
-for config in ${USB_ALL_CONFIGS_DIR} ; do
-    # Exit early if there are no entries
-    [ "${config}" == "${USB_ALL_CONFIGS_DIR}" ] && break
-
-    # Remove all functions from config
-    for function in ${USB_ALL_FUNCTIONS_DIR} ; do
-      file="${config}/$(basename "${function}")"
-      [ -e "${file}" ] && rm "${file}"
+# Iterate config directories (if any)
+if ls ${USB_DEVICE_PATH}/configs 1>/dev/null 2>&1; then
+  for config in "${USB_DEVICE_PATH}"/configs/*; do
+    [ -d "$config" ] || continue
+    # Unlink functions from this config
+    for func in "${USB_DEVICE_PATH}"/functions/*; do
+      [ -d "$func" ] || continue
+      link="$config/$(basename "$func")"
+      if [ -L "$link" ]; then
+        log "Unlinking $(basename "$func") from $(basename "$config")"
+        unlink "$link" || log "Failed to unlink $link"
+      fi
     done
+  done
+fi
 
-    # Remove strings in config
-    [ -d "${config}/${USB_STRINGS_DIR}" ] && rmdir "${config}/${USB_STRINGS_DIR}"
-
-    rmdir "${config}"
-done
-
-# Remove functions
-for function in ${USB_ALL_FUNCTIONS_DIR} ; do
-    [ -d "${function}" ] && rmdir "${function}"
-done
-
-# Remove strings from device
-[ -d "${USB_STRINGS_DIR}" ] && rmdir "${USB_STRINGS_DIR}"
-
-popd
-
-rmdir "${USB_DEVICE_DIR}"

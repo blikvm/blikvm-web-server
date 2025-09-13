@@ -50,6 +50,15 @@ USB_ALL_FUNCTIONS_DIR="functions/*"
 USB_MSD_DIR="/mnt/msd/ventoy"
 MSD_FILE="none.txt"
 
+# Sanity check: require OTG peripheral role to avoid wedging the controller.
+OTG_MODE_PATH="/sys/devices/platform/fe8a0000.usb2-phy/otg_mode"
+if [[ -f "$OTG_MODE_PATH" ]]; then
+  cur_mode=$(cat "$OTG_MODE_PATH" 2>/dev/null || echo unknown)
+  if [[ "$cur_mode" != "peripheral" ]]; then
+    echo peripheral > /sys/devices/platform/fe8a0000.usb2-phy/otg_mode
+  fi
+fi
+
 # 需要后面去编译设备树目前是临时解决方案 需要先手动执行一下 
 #rm -rf /sys/kernel/config/usb_gadget/rockchip
 # echo peripheral > /sys/devices/platform/fe8a0000.usb2-phy/otg_mode

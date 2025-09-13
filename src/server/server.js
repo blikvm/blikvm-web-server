@@ -35,7 +35,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import Mouse from './mouse.js';
 import Keyboard from './keyboard.js';
 import { ApiCode, createApiObj } from '../common/api.js';
-import { CONFIG_PATH, UTF8, JWT_SECRET,ACL_PATH } from '../common/constants.js';
+import { CONFIG_PATH, UTF8, JWT_SECRET, ACL_PATH } from '../common/constants.js';
 import { fileExists, processPing, getSystemInfo } from '../common/tool.js';
 import path from 'path';
 import { apiGetAuthState, apiLogin } from './api/login.route.js';
@@ -281,13 +281,13 @@ class HttpServer {
   _extractIPList(config) {
     const mode = config.mode; // 获取 mode 值
     let ipList = [];
-  
+
     if (mode === "allow") {
       ipList = config.allowList.item.map((entry) => entry.ip); // 提取 allowList 中的 IP
     } else if (mode === "block") {
       ipList = config.blockList.item.map((entry) => entry.ip); // 提取 blockList 中的 IP
     }
-  
+
     return ipList;
   }
 
@@ -297,7 +297,7 @@ class HttpServer {
    */
   _init() {
     const { server, video, msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    const acl_config =  JSON.parse(fs.readFileSync(ACL_PATH, UTF8));
+    const acl_config = JSON.parse(fs.readFileSync(ACL_PATH, UTF8));
     this._protocol = server.protocol;
     this._httpsServerPort = server.https_port || 443;
     this._httpServerPort = server.http_port || 80;
@@ -307,7 +307,7 @@ class HttpServer {
     if (acl_config.mode === "allow") {
       const IP_WHITELIST = this._extractIPList(acl_config);
       app.use(this._ipWhitelistMiddleware(IP_WHITELIST));
-    }else if(acl_config.mode === "block") {
+    } else if (acl_config.mode === "block") {
       const IP_BLACKLIST = this._extractIPList(acl_config);
       app.use(this._ipBlacklistMiddleware(IP_BLACKLIST));
     }
@@ -329,11 +329,20 @@ class HttpServer {
     }));
 
     // 👇 加在 app.use('/video', ...) 后面即可
-    app.use('/gstreamer', createProxyMiddleware({
-      target: 'https://127.0.0.1:8889',
-      changeOrigin: true,
-      secure: false,
-    }));
+    // ✅ gstreamer 代理必须最前面，避免被 bodyParser/text 消费
+    app.use(
+      '/gstreamer',
+      createProxyMiddleware({
+        target: 'https://127.0.0.1:8889',
+        changeOrigin: true,
+        secure: false
+      })
+    );
+
+    // 其他中间件要在后面挂
+    // app.use(bodyParser.json());
+    // app.use(express.static(path.join(getRootPath(), 'dist')));
+    // app.use(express.text());
 
 
     app.use('/tus', createProxyMiddleware({

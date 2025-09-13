@@ -76,20 +76,20 @@ httpServer.startService().then((result) => {
   startHid();
   startWebServer();
   startVideo();
-  // const kvmdmain = new KVMDMain();
-  // kvmdmain.startService();
+  const kvmdmain = new KVMDMain();
+  kvmdmain.startService();
   
-  // startSwitch();
-  // const atx = new ATX();
-  // setTimeout(() => {
-  //   atx.startService();
-  //   //just for make sure jiggler is running
-  //   const mouse = new Mouse();
-  // }, 5000); // 5000 ms delay start ATX service
+  startSwitch();
+  const atx = new ATX();
+  setTimeout(() => {
+    atx.startService();
+    //just for make sure jiggler is running
+    const mouse = new Mouse();
+  }, 5000); // 5000 ms delay start ATX service
 
-  //setTimeout(() => {
-  // startHIDLoop();
-  //   }, 4000);
+  setTimeout(() => {
+  startHIDLoop();
+    }, 4000);
 
 })
   .finally(() => {
