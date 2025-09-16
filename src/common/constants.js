@@ -23,8 +23,8 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 dotenv.config();
 
-export const PRODUCT_VERSION = 'v2.1.0-alpha';
-export const SERVER_VERSION = 'v1.0.6';
+export const PRODUCT_VERSION = 'v2.1.1-alpha';
+export const SERVER_VERSION = 'v1.0.7';
 export const CONFIG_DIR = 'config';
 export const MSD_MOUNT_DIR =  '/media/blikvm/ventoy';
 export const MSD_CONFIG_FILE = '/mnt/msd/config/msd.json';
