@@ -280,7 +280,7 @@ else
 fi
 
   #MSD
-if [[ $msd == "true" ]]; then
+if [[ $msd == "enable" ]]; then
   mkdir -p "$USB_MASS_STORAGE_FUNCTIONS_DIR"
   #config msd paramter
   shopt -s nullglob

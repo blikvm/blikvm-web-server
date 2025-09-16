@@ -149,7 +149,7 @@ function apiGetSystemInfo(req, res, next) {
         .reduce((total, partition) => total + partition.available, 0);
         const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
         let deviceVersion = config.deviceVersion;
-        console.log('systemData:', systemData);
+        // console.log('systemData:', systemData);
         returnObject.data = {
           cpuLoad: systemInfo.cpuLoad,
           uptime: systemInfo.uptime,

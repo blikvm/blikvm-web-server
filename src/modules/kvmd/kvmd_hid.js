@@ -63,7 +63,7 @@ class HID extends Module {
         const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
         const args = [
           `mouse_mode=${config.hid.mouseMode}`,
-          `msd=${config.msd.enable}`,
+          `msd=${config.msd.enable ? 'enable' : 'disable'}`,
         ];
         const identity = (config.hid && config.hid.identity) || {};
         if (identity.idVendor) args.push(`idVendor=${identity.idVendor}`);
