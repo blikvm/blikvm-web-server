@@ -21,10 +21,46 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import https from 'https';
 import Logger from '../../log/logger.js';
 
 const logger = new Logger();
 const UPDATE_UNIT = 'blikvm-update'; // fixed unit name to ensure single instance via systemd
+const TMP_SCRIPT = '/tmp/update.py'; // 下载后保存的位置
+
+// 下载 update.py ，优先 GitHub，10s 超时再尝试 Gitee
+async function downloadUpdatePy() {
+  const urls = [
+    'https://raw.githubusercontent.com/blikvm/blikvm/master/script/update.py',
+    'https://gitee.com/blikvm/blikvm/raw/master/script/update.py',
+  ];
+
+  for (const url of urls) {
+    logger.info(`[update] downloading update.py from ${url}`);
+    try {
+      await new Promise((resolve, reject) => {
+        const req = https.get(url, { timeout: 10000 }, (res) => {
+          if (res.statusCode !== 200) {
+            return reject(new Error(`HTTP ${res.statusCode}`));
+          }
+          const file = fs.createWriteStream(TMP_SCRIPT, { mode: 0o755 });
+          res.pipe(file);
+          file.on('finish', () => file.close(resolve));
+        });
+        req.on('error', reject);
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error('timeout'));
+        });
+      });
+      logger.info(`[update] downloaded update.py from ${url}`);
+      return TMP_SCRIPT;
+    } catch (err) {
+      logger.warn(`[update] failed to download from ${url}: ${err.message}`);
+    }
+  }
+  throw new Error('Failed to download update.py from all sources');
+}
 
 // (old file-lock helpers removed; concurrency now enforced by systemd fixed unit or flock)
 
@@ -67,8 +103,14 @@ async function apiUpdateStream(req, res, next) {
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.flushHeaders && res.flushHeaders();
 
+    // SSE writer with close guard
+    const closed = { closed: false };
+    const sse = makeSseWriter(res, closed);
+    sse({ type: 'info', message: 'During the upgrade process, the system may experience lag, so try to avoid other operations as much as possible. Downloading update script, please wait...' });
+
     // Build update.py command
-    const scriptPath = '/mnt/blikvm/script/update.py';
+    const scriptPath = await downloadUpdatePy();
+
     const pyArgs = [scriptPath];
 
     const { version, source, pingCount } = req.query || {};
@@ -79,10 +121,7 @@ async function apiUpdateStream(req, res, next) {
     if (pingCount) {
       pyArgs.push('--ping-count', String(pingCount));
     }
-
-    // SSE writer with close guard
-    const closed = { closed: false };
-    const sse = makeSseWriter(res, closed);
+    pyArgs.push('--progress-mode', 'pct'); // Use percentage mode for better SSE compatibility
 
     // Concurrency guard with fixed systemd unit: if active, attach; else try to start
     try {
@@ -177,7 +216,6 @@ async function apiUpdateStream(req, res, next) {
       req.on('close', handleDisconnect);
       res.on && res.on('close', handleDisconnect);
     };
-
     try {
       await startBySystemdRun();
       followJournal(unit);
