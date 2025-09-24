@@ -30,6 +30,7 @@ import HIDDevice from '../modules/hid_devices.js';
 import { textToWebKeys } from '../modules/hid/printer.js';
 import { makeKeyboardEvent } from '../modules/hid/event.js';
 import KeyboardProcessor from '../modules/hid/keyboard_processor.js';
+import { Recorder } from '../modules/recorder.js';
 
 const logger = new Logger();
 
@@ -52,6 +53,11 @@ class Keyboard extends HIDDevice {
    * @param {Event} event - The keyboard event.
    */
   handleEvent(event) {
+    //console.log('keyboard event:', event);
+    const recorder = new Recorder();
+    if( recorder.isRecording() ) {
+      recorder.appendEvent( {keys: event }, 'keyboard');
+    }
     const keyboardData = this._packData(event);
     this.writeToQueue(keyboardData);
   }

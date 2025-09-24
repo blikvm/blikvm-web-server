@@ -67,6 +67,7 @@ import { apiUpdateUrlConduct, apiActiveConduct, apiGetConducState } from './code
 import { scanWifi, connectWifi, disconnectWifi, wifiStatus } from './wifi.route.js';
 import { listInterfaces, getInterfaceConfig, setStaticIPv4, setDHCPv4 } from './ip.route.js';
 import { apiUpdateStream } from './update.route.js';
+import { apiRecorderStart, apiRecorderStop, apiRecorderRun, apiRecorderStopRun, apiRecorderDelete, apiRecorderList, apiRecorderDownload, apiRecorderUpload } from './recorder.route.js';
 
 /**
  * Array of route objects.
@@ -232,6 +233,16 @@ const routes = [
   
   // update (SSE streaming)
   { path: '/api/update/stream', handler: apiUpdateStream, method: 'get' },
+
+  // recorder
+  { path: '/api/recorder', handler: apiRecorderList, method: 'get' },
+  { path: '/api/recorder/download', handler: apiRecorderDownload, method: 'get' },
+  { path: '/api/recorder/upload', handler: apiRecorderUpload, method: 'post' },
+  { path: '/api/recorder/start', handler: apiRecorderStart, method: 'post' },
+  { path: '/api/recorder/stop', handler: apiRecorderStop, method: 'post' },
+  { path: '/api/recorder/run', handler: apiRecorderRun, method: 'post' },
+  { path: '/api/recorder/stopRun', handler: apiRecorderStopRun, method: 'post' },
+  { path: '/api/recorder/:file', handler: apiRecorderDelete, method: 'delete' },
   
 ];
 

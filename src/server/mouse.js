@@ -24,12 +24,11 @@
  */
 
 import Logger from '../log/logger.js';
-import { isDeviceFile } from '../common/tool.js';
 import fs from 'fs';
 import { CONFIG_PATH, UTF8 } from '../common/constants.js';
 import { writeJsonAtomic } from '../common/atomic-file.js';
-import  HIDDevice  from '../modules/hid_devices.js';
 import MouseBase from '../modules/mouse_base.js';
+import { Recorder } from '../modules/recorder.js';
 
 const logger = new Logger();
 
@@ -92,6 +91,13 @@ class Mouse {
    */
   handleEvent(event) {
     //console.log('mouse event:', event);
+    if( !event || typeof event !== 'object' ) {
+      return;
+    }
+    const recorder = new Recorder();
+    if( recorder.isRecording() ) {
+      recorder.appendEvent(event, 'mouse');
+    }
     this._lastUserInteraction = Date.now();
     const {
       buttons,

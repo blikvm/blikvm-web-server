@@ -36,3 +36,4 @@ export const SHORTCUTS_PATH = process.argv[6] ? process.argv[6] : 'config/shortc
 console.log(`Config path is: ${CONFIG_PATH} and switch path is: ${SWITCH_PATH}`);
 export const UTF8 = 'utf8';
 export const JWT_SECRET = crypto.randomBytes(32).toString('hex');
+export const RECORD_DIR = '/mnt/recorder'; // 30 days
