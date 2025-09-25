@@ -27,7 +27,7 @@
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { CONFIG_PATH } from '../common/constants.js';
 import readEepromJson from './eepromReader.js';
 import { v4 } from 'uuid';
 import { HardwareType } from './enums.js';
@@ -35,6 +35,7 @@ import { execSync, exec } from 'child_process';
 import si from 'systeminformation';
 import Logger from '../log/logger.js';
 import { createApiObj } from './api.js';
+import {defaultConfig} from '../modules/update/app_default_config.js';
 
 const logger = new Logger();
 
@@ -459,6 +460,21 @@ function getCurrentTimestamp() {
   return `${year}${month}${day}${hours}${minutes}${seconds}`;
 }
 
+let cachedConfig = null;
+function getDefaultConfig() {
+  if (cachedConfig !== null) {
+    return cachedConfig;
+  }
+  if (fs.existsSync(CONFIG_PATH) === false) {
+    cachedConfig = defaultConfig;
+  } else {
+    const configFile = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    cachedConfig = configFile;
+  }
+  return cachedConfig;
+}
+
+
 export {
   dirExists,
   fileExists,
@@ -481,5 +497,6 @@ export {
   readDirectoryFiles,
   isMounted,
   getDiskSpace,
+  getDefaultConfig,
   getCurrentTimestamp
 };

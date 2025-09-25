@@ -29,6 +29,7 @@ import { CONFIG_PATH, UTF8 } from '../common/constants.js';
 import { writeJsonAtomic } from '../common/atomic-file.js';
 import MouseBase from '../modules/mouse_base.js';
 import { Recorder } from '../modules/recorder.js';
+import { getDefaultConfig } from '../common/tool.js';
 
 const logger = new Logger();
 
@@ -42,14 +43,13 @@ class Mouse {
   _jigglerIntervalId = null;
   constructor() {
     if (!Mouse._instance) {
-      this._init();
       Mouse._instance = this;
     }
     return Mouse._instance;
   }
 
-  _init() {
-    const { hid } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+  init() {
+    const { hid } = getDefaultConfig();
     this._mouseMode = hid.mouseMode;
     if(this._mouseMode === 'dual') {
       this._absMouse = new MouseBase('/dev/hidg1');

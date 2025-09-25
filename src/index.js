@@ -37,6 +37,7 @@ import ACLConfigUpdate from './modules/update/access_control_list_update.js';
 import ShortcutsConfigUpdate from './modules/update/shortcuts_update.js';
 import { startHIDPassthroughListening } from './server/kvmd_event_listenner.js';
 import Mouse from './server/mouse.js';
+import Keyboard from './server/keyboard.js';
 import { killProcessByName } from './common/kill.js';
 import { startCheck } from './modules/start_check.js';
 
@@ -91,12 +92,15 @@ httpServer.startService().then((result) => {
   const atx = new ATX();
   setTimeout(() => {
     atx.startService();
+    const keyboard = new Keyboard();
+    keyboard.init();
     //just for make sure jiggler is running
     const mouse = new Mouse();
+    mouse.init();
   }, 5000); // 5000 ms delay start ATX service
   setTimeout(() => {
     startHIDLoop();
-  }, 4000);
+  }, 6000);
 })
 .finally(() => {
   logger.info("All services have been started.");

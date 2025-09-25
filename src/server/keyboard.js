@@ -40,12 +40,15 @@ class Keyboard extends HIDDevice {
     if (!Keyboard._instance) {
       super();
       Keyboard._instance = this;
-      this._devicePath = '/dev/hidg0';
-      this._type = 'keyboard';
-      this.open();
-      this.startWriteToHid();
     }
     return Keyboard._instance;
+  }
+
+  init() {
+    this._devicePath = '/dev/hidg0';
+    this._type = 'keyboard';
+    this.open();
+    this.startWriteToHid();
   }
 
   /**
