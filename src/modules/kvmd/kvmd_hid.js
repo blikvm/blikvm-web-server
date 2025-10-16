@@ -64,6 +64,7 @@ class HID extends Module {
         const args = [
           `mouse_mode=${config.hid.mouseMode}`,
           `msd=${config.msd.enable ? 'enable' : 'disable'}`,
+          `mic=${config.mic.isRegistered ? 'enable' : 'disable'}`,
         ];
         const identity = (config.hid && config.hid.identity) || {};
         if (identity.idVendor) args.push(`idVendor=${identity.idVendor}`);
@@ -71,10 +72,10 @@ class HID extends Module {
         if (identity.manufacturer) args.push(`manufacturer=${identity.manufacturer}`);
         if (identity.product) args.push(`product=${identity.product}`);
         executeScriptAtPath(this._hidEnablePath, args)
-          .then(() => {
+          .then( async () => {
             this._state = ModuleState.RUNNING;
             if (config.hid.enable !== true) {
-              writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = true; });
+              await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = true; });
             }
             resolve();
           })
@@ -93,11 +94,11 @@ class HID extends Module {
   closeService() {
     return new Promise((resolve, reject) => {
       executeScriptAtPath(this._hidDisablePath, [])
-        .then(() => {
+        .then( async () => {
           this._state = ModuleState.STOPPED;
           const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
           if (config.hid.enable !== false) {
-            writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = false; });
+            await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = false; });
           }
           resolve('hid disable success');
         })

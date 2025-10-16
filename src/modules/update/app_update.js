@@ -207,6 +207,16 @@ class AppConfigUpdate {
     return data;
   }
 
+  upgradeV9toV10(data){
+    if(data.mic === undefined ){
+      data.mic = {
+        isRegistered: false
+      };
+    }
+    data.version = 10;
+    return data;
+  }
+
 
   // 通用升级函数，检查当前版本并逐步升级
   upgradeData(data) {
@@ -241,6 +251,10 @@ class AppConfigUpdate {
     if( data.version === 8 ){ 
       logger.info('Update from version 8 to version 9...');
       data = this.upgradeV8toV9(data);
+    }
+    if( data.version === 9){
+      logger.info('Update from version 9 to version 10...');
+      data = this.upgradeV9toV10(data);
     }
     return data;
   }

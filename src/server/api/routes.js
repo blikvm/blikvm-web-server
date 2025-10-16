@@ -67,6 +67,7 @@ import { apiUpdateUrlConduct, apiActiveConduct, apiGetConducState } from './code
 import { scanWifi, connectWifi, disconnectWifi, wifiStatus } from './wifi.route.js';
 import { listInterfaces, getInterfaceConfig, setStaticIPv4, setDHCPv4 } from './ip.route.js';
 import { apiUpdateStream } from './update.route.js';
+import { apiMicState, apiMicSet } from './mic.route.js';
 import { apiRecorderStart, apiRecorderStop, apiRecorderRun, apiRecorderStopRun, apiRecorderDelete, apiRecorderList, apiRecorderDownload, apiRecorderUpload } from './recorder.route.js';
 
 /**
@@ -243,7 +244,10 @@ const routes = [
   { path: '/api/recorder/run', handler: apiRecorderRun, method: 'post' },
   { path: '/api/recorder/stopRun', handler: apiRecorderStopRun, method: 'post' },
   { path: '/api/recorder/:file', handler: apiRecorderDelete, method: 'delete' },
-  
+
+  // mic
+  { path: '/api/mic', handler: apiMicState, method: 'get' },
+  { path: '/api/mic', handler: apiMicSet, method: 'post' },
 ];
 
 export default routes;

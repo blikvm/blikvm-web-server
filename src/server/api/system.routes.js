@@ -186,6 +186,9 @@ function apiGetSystemInfo(req, res, next) {
             total: sdTotalSpace,
             actual: sdAvailableSpace
           },
+          mic:{
+            isRegistered: config.mic?.isRegistered ?? false
+          },
           network: netDataFilter
         };
         const hdType = getHardwareType();

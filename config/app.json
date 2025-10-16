@@ -1,5 +1,5 @@
 {
-  "version": 9,
+  "version": 10,
   "deviceVersion": "BliKVM v3 HAT",
   "log": {
     "console": {
@@ -99,7 +99,7 @@
     "identity": {
       "idVendor": "0x1d6b",
       "idProduct": "0x0106",
-      "manufacturer": "BliKVMtest",
+      "manufacturer": "BliKVM",
       "product": "Multifunction USB Device"
     }
   },
@@ -121,5 +121,8 @@
   "codeOfConduct": {
     "isActive": true,
     "url": ""
+  },
+  "mic": {
+    "isRegistered": false
   }
 }

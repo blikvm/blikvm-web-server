@@ -22,7 +22,7 @@
 import fs from 'fs';
 import Logger from '../../../log/logger.js';
 import Serial from '../../serial.js';
-import Transform from 'stream';
+import {Transform} from 'stream';
 import { ModuleState } from '../../../common/enums.js';
 import { SWITCH_PATH, UTF8 } from '../../../common/constants.js';
 import KVMSwitchBase from './kvmd_switch_base.js';

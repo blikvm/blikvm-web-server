@@ -112,7 +112,14 @@ function startSwitch() {
   const switchObj = JSON.parse(fs.readFileSync(SWITCH_PATH, UTF8));
   if (switchObj.kvmSwitch.isActive === true) {
     const switchHandle = KVMSwitchFactory.getSwitchHandle(switchObj.kvmSwitch.activeSwitchId);
-    switchHandle.enableSwitch();
+    if (switchHandle !== null) {
+      switchHandle.enableSwitch();
+    }else {
+      switchObj.kvmSwitch.isActive = false;
+      switchObj.kvmSwitch.activeSwitchId = -1;
+      fs.writeFileSync(SWITCH_PATH, JSON.stringify(switchObj, null, 2), UTF8);
+      logger.error('Failed to start the KVM switch due to unknown switch type. The switch has been deactivated.');
+    }
   }
 }
 

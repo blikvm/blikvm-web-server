@@ -62,6 +62,112 @@ USB_ID_PRODUCT="$USB_ID_PRODUCT_DEFAULT"
 USB_MANUFACTURER="$USB_MANUFACTURER_DEFAULT"
 USB_PRODUCT="$USB_PRODUCT_DEFAULT"
 
+# Fixed path to store gadget metadata files
+META_PATH="/var/blikvm/otg"
+HID_INSTANCE=0
+
+# --- Utilities: JSON escape and meta writer ---
+# Safely escape a string for JSON (handles \ " and newlines)
+json_escape() {
+  local s="$1"
+  s=${s//\\/\\\\}   # escape backslashes
+  s=${s//\"/\\\"}  # escape quotes
+  s=${s//$'\n'/\\n}   # escape newlines
+  printf '%s' "$s"
+}
+
+# create_meta FUNC DESC EPS
+# Also supports legacy form: create_meta META_PATH FUNC DESC EPS (META_PATH ignored)
+# Writes META_PATH/"${FUNC}@meta.json" with JSON content
+create_meta() {
+  local func desc_raw eps
+  if [[ $# -eq 4 ]]; then
+    # Legacy signature: first arg was meta_path (ignored now)
+    func="$2"
+    desc_raw="$3"
+    eps="$4"
+  elif [[ $# -eq 3 ]]; then
+    func="$1"
+    desc_raw="$2"
+    eps="$3"
+  else
+    echo "create_meta usage: create_meta <function> <description> <endpoints>" >&2
+    return 1
+  fi
+  local file_path="${META_PATH}/${func}@meta.json"
+
+  # Ensure directory exists
+  mkdir -p "$META_PATH"
+
+  # Escape description
+  local desc
+  desc="$(json_escape "$desc_raw")"
+
+  # Write JSON
+  cat > "$file_path" <<EOF
+{
+  "function": "${func}",
+  "description": "${desc}",
+  "endpoints": ${eps}
+}
+EOF
+}
+
+create_function() {
+  local func="$1"
+
+  if [[ -z "$func" ]]; then
+    echo "usage: create_function <func>" >&2
+    return 1
+  fi
+
+  local func_path="${USB_DEVICE_PATH}/functions/${func}"
+  echo "MKDIR --- ${func_path}"
+  mkdir -p "${func_path}" || { echo "failed to create ${func_path}" >&2; return 1; }
+
+  # 输出创建的功能路径（与 Python 返回值等价）
+  echo "${func_path}"
+}
+
+add_audio_mic() {
+  local profile_path="${USB_DEVICE_PATH}/${USB_CONFIG_DIR}"
+  local start="$1"
+
+  local eps=2
+  local func="uac2.usb0"
+  local func_path="${USB_DEVICE_PATH}/functions/${func}"
+
+  mkdir -p "${profile_path}"
+
+  # 创建功能目录
+  echo "MKDIR --- ${func_path}"
+  mkdir -p "${func_path}" || { echo "failed: ${func_path}" >&2; return 1; }
+
+  # 写入 UAC2 参数
+  echo "WRITE --- c_chmask=0"
+  echo 0 > "${func_path}/c_chmask" || { echo "write c_chmask failed" >&2; return 1; }
+
+  echo "WRITE --- p_chmask=3"
+  echo 3 > "${func_path}/p_chmask" || { echo "write p_chmask failed" >&2; return 1; }
+
+  echo "WRITE --- p_srate=48000"
+  echo 48000 > "${func_path}/p_srate" || { echo "write p_srate failed" >&2; return 1; }
+
+  echo "WRITE --- p_ssize=2"
+  echo 2 > "${func_path}/p_ssize" || { echo "write p_ssize failed" >&2; return 1; }
+
+  # 按需启用：将功能链接到 profile
+  if [[ "${start}" == "true" ]]; then
+    echo "SYMLINK - ${profile_path}/${func} --> ${func_path}"
+    ln -sf "${func_path}" "${profile_path}/${func}" || { echo "link profile failed" >&2; return 1; }
+  fi
+
+  # 生成 meta JSON
+  create_meta "${func}" "Microphone" "${eps}"
+}
+
+
+
 # Early parse for identification overrides: idVendor/vid, idProduct/pid, manufacturer, product
 for arg in "$@"; do
   case $arg in
@@ -148,6 +254,8 @@ cp "$D" "${USB_KEYBOARD_FUNCTIONS_DIR}/report_desc"
 if [[ -f "${USB_KEYBOARD_FUNCTIONS_DIR}/no_out_endpoint" ]]; then
   echo 1 > "${USB_KEYBOARD_FUNCTIONS_DIR}/no_out_endpoint"
 fi
+
+create_meta "hid.keyboard" "Keyboard" 1
 
 # Mouse
 
@@ -252,6 +360,7 @@ configure_relative_mode() {
 # Determine the absolute mode
 mode="dual"
 msd="enable"
+mic="enable"
 for arg in "$@"; do
   case $arg in
     mouse_mode=*)
@@ -262,6 +371,10 @@ for arg in "$@"; do
       msd="${arg#*=}"
       shift
       ;;
+    mic=*)
+      mic="${arg#*=}"
+      shift
+      ;;
     *)
       ;;
   esac
@@ -269,17 +382,25 @@ done
 
 if [[ $mode == "absolute" ]]; then
   configure_absolute_mode
+  create_meta "hid.mouse0" "Absolute Mouse" 1
+  HID_INSTANCE=$((HID_INSTANCE + 1))
 elif [[ $mode == "relative" ]]; then
   configure_relative_mode
+  create_meta "hid.mouse1" "Relative Mouse" 1
+  HID_INSTANCE=$((HID_INSTANCE + 1))
 elif [[ $mode == "dual" ]]; then
   configure_absolute_mode
   configure_relative_mode
+  create_meta "hid.mouse0" "Absolute Mouse" 1
+  HID_INSTANCE=$((HID_INSTANCE + 1))
+  create_meta "hid.mouse1" "Relative Mouse" 1
+  HID_INSTANCE=$((HID_INSTANCE + 1))
 else
   echo "Invalid mode: $mode"
   exit 1
 fi
 
-  #MSD
+#MSD
 if [[ $msd == "enable" ]]; then
   mkdir -p "$USB_MASS_STORAGE_FUNCTIONS_DIR"
   #config msd paramter
@@ -301,7 +422,15 @@ if [[ $msd == "enable" ]]; then
       fi
     done
   fi
+  create_meta "mass_storage.0" "Mass Storage Drive" 2
+  HID_INSTANCE=$((HID_INSTANCE + 1))
 fi
+
+# audio microphone
+if [[ $mic == "enable" ]]; then
+  add_audio_mic "true"
+fi
+
 
 mkdir -p "${USB_CONFIG_DIR}"
 echo 250 > "${USB_CONFIG_DIR}/MaxPower"

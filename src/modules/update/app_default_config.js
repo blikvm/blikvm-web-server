@@ -18,7 +18,7 @@ function getHardwareTypeForConfig() {
 const hardware = getHardwareTypeForConfig();
 
 const defaultConfig = {
-    "version": 9,
+    "version": 10,
     "deviceVersion": "BliKVM",
     "log": {
       "console": {
@@ -99,6 +99,9 @@ const defaultConfig = {
       "shell": "./lib/kvmd-msd.sh",
       "stateFilePath": "/mnt/msd/config/msd.json",
       "tusPort": 10002
+    },
+    "mic": {
+      "isRegistered": false
     },
     "hid": {
       "hidEnable": "./lib/hid/enable-gadget.sh",
