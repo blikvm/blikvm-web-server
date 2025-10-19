@@ -35,10 +35,6 @@
     "sshPassword": "blikvm",
     "auth": true,
     "authExpiration": 12,
-    "ipWhite": {
-      "enabled": false,
-      "list": []
-    },
     "mdnsEnabled": true
   },
   "video": {

@@ -54,11 +54,7 @@ const defaultConfig = {
       "sshUser": "blikvm",
       "sshPassword": "blikvm",
       "auth": true,
-      "authExpiration": 12,
-      "ipWhite": {
-        "enabled": false,
-        "list": []
-      }
+      "authExpiration": 12
     },
     "video": {
       "port": 10004,

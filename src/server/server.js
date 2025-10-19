@@ -300,16 +300,22 @@ class HttpServer {
   }
 
   _extractIPList(config) {
-    const mode = config.mode; // 获取 mode 值
-    let ipList = [];
-
-    if (mode === "allow") {
-      ipList = config.allowList.item.map((entry) => entry.ip); // 提取 allowList 中的 IP
-    } else if (mode === "block") {
-      ipList = config.blockList.item.map((entry) => entry.ip); // 提取 blockList 中的 IP
+    try {
+      const mode = String(config?.mode || '').toLowerCase(); // 获取 mode 值
+      if (mode === 'allow') {
+        const items = (config?.allowList?.items) || [];
+        return items.map((entry) => entry?.ip).filter(Boolean);
+      }
+      if (mode === 'block') {
+        const items = (config?.blockList?.items) || [];
+        return items.map((entry) => entry?.ip).filter(Boolean);
+      }
+      // mode === 'none' 或未知
+      return [];
+    } catch (e) {
+      // 发生异常时返回空列表，避免服务崩溃
+      return [];
     }
-
-    return ipList;
   }
 
   /**
@@ -328,8 +334,12 @@ class HttpServer {
 
     if (acl_config.mode === "allow") {
       const IP_WHITELIST = this._extractIPList(acl_config);
-      app.use(this._ipWhitelistMiddleware(IP_WHITELIST));
-    } else if (acl_config.mode === "block") {
+      if (IP_WHITELIST.length > 0) {
+        app.use(this._ipWhitelistMiddleware(IP_WHITELIST));
+      }else{
+        logger.error("IP whitelist is empty.");
+      }
+    }else if(acl_config.mode === "block") {
       const IP_BLACKLIST = this._extractIPList(acl_config);
       app.use(this._ipBlacklistMiddleware(IP_BLACKLIST));
     }
