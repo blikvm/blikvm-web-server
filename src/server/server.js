@@ -371,11 +371,11 @@ class HttpServer {
       },
     }));
 
-    const janus_server = server.protocol === 'http' ? 'http://127.0.0.1:8188' : 'https://127.0.0.1:8989';
+    const janusSocket = '/run/janus-ws.sock';
     this._proxy = httpProxy.createProxyServer({
-      target: janus_server, // Janus server address
+      target: { socketPath: janusSocket },
       ws: true,
-      changeOrigin: true,
+      changeOrigin: false,
       secure: false,
     });
 
