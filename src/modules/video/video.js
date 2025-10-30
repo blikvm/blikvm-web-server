@@ -103,9 +103,9 @@ class Video extends ModuleApp {
     config.video.fps = isNaN(fps) ? config.video.fps : fps;
     config.video.quality = quality;
     config.video.kbps = kbps;
-    // GOP must be in [1, 60]
+    // GOP must be in [0, 60]
     if (!isNaN(gopRaw)) {
-      const gopClamped = Math.max(1, Math.min(60, gopRaw));
+      const gopClamped = Math.max(0, Math.min(60, gopRaw));
       config.video.gop = gopClamped;
     }
 
