@@ -82,7 +82,16 @@ class ShortcutsConfigUpdate {
         logger.info(`shortcuts.json not found, wrote default to ${this._filePath}`);
         return;
       }
-      // If exists, do nothing for now (no versioned migrations yet)
+
+      try {
+        const raw = fs.readFileSync(this._filePath, UTF8);
+        JSON.parse(raw);
+      } catch (e) {
+        logger.warn('Invalid JSON detected in shortcuts.json, using latest default config to overwrite');
+        fs.writeFileSync(this._filePath, JSON.stringify(this._defaultConfig, null, 2), UTF8);
+        return;
+      }
+      
     } catch (error) {
       logger.error(`${error}`);
     }

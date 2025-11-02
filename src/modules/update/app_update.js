@@ -217,8 +217,6 @@ class AppConfigUpdate {
     return data;
   }
 
-
-  // 通用升级函数，检查当前版本并逐步升级
   upgradeData(data) {
     if (data.version === 1) {
       logger.info('Update from version 1 to version 2...');
@@ -259,7 +257,6 @@ class AppConfigUpdate {
     return data;
   }
 
-  // 升级配置文件
   upgradeFile() {
     try {
       if(dirExists(CONFIG_DIR) === false){
@@ -271,7 +268,15 @@ class AppConfigUpdate {
         return;
       }
 
-      const localData = JSON.parse(fs.readFileSync(this._filePath, UTF8));
+      let localData;
+      try {
+        const raw = fs.readFileSync(this._filePath, UTF8);
+        localData = JSON.parse(raw);
+      } catch (e) {
+        logger.warn('Invalid JSON detected in app.json, using latest default config to overwrite');
+        fs.writeFileSync(this._filePath, JSON.stringify(this._defaultConfig, null, 2), UTF8);
+        return;
+      }
       if (!localData.version) {
         logger.warn('No user config version found, use latest default config');
         fs.writeFileSync(this._filePath, JSON.stringify(this._defaultConfig, null, 2), UTF8);

@@ -86,7 +86,7 @@ const copyLibDirectory = async (hardwareSysType) => {
   const libDir = path.join(process.cwd(), 'lib');
   const entries = await fs.readdir(libDir);
   await Promise.all(entries.map(async (entry) => {
-    if (hardwareSysType === 'pi' && entry !== 'allwinner') {
+    if (hardwareSysType === 'pi' && entry !== 'h616') {
       const srcPath = path.join(libDir, entry);
       const destPath = path.join(releaseDir, 'lib', entry);
       await copyRecursive(srcPath, destPath);

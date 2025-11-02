@@ -37,12 +37,10 @@ class WOLConfigUpdate {
     };
   }
 
-  // 通用升级函数，检查当前版本并逐步升级
   upgradeData(data) {
     return data;
   }
 
-  // 升级配置文件
   upgradeFile() {
     try {
       if(fileExists(this._filePath) === false){
@@ -50,7 +48,15 @@ class WOLConfigUpdate {
         return;
       }
 
-      const localData = JSON.parse(fs.readFileSync(this._filePath, UTF8));
+      let localData;
+      try {
+        const raw = fs.readFileSync(this._filePath, UTF8);
+        localData = JSON.parse(raw);
+      } catch (e) {
+        logger.warn('Invalid JSON detected in wake_on_lane.json, using latest default config to overwrite');
+        fs.writeFileSync(this._filePath, JSON.stringify(this._defaultConfig, null, 2), UTF8);
+        return;
+      }
       if (!localData.version) {
         logger.warn('No wake on lane config version found, use latest default config');
         fs.writeFileSync(this._filePath, JSON.stringify(this._defaultConfig, null, 2), UTF8);
