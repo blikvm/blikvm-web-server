@@ -216,18 +216,22 @@ function apiGetStatus(req, res, next) {
 function apiKeyboardPaste(req, res, next) {
   try {
     const returnObject = createApiObj();
-    const text = req.body.text;
-    const lang = req.body.lang;
-    const delay = req.body.delay;
+    const text = req.body?.text;
+    // default language to 'en' when missing or invalid
+    const lang = (typeof req.body?.lang === 'string' && req.body.lang.trim()) ? req.body.lang : 'en';
+    // default delay to 5 when missing/invalid; clamp to [5,100]
+    let delay = req.body?.delay;
+    if (delay == null || Number.isNaN(Number(delay))) {
+      delay = 5;
+    } else {
+      delay = Math.max(5, Math.min(100, Math.floor(Number(delay))));
+    }
     if (typeof text !== 'string') {
       returnObject.code = ApiCode.INVALID_INPUT_PARAM;
       returnObject.msg = 'input data is not string';
       logger.error(`input data is not string: ${text}`);
       res.json(returnObject);
       return;
-    }
-    if (typeof lang !== 'string') {
-      lang = 'en';
     }
     const keyboard = new Keyboard();
     keyboard.pasteData(text, lang, delay);
