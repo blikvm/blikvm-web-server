@@ -221,7 +221,7 @@ function apiKeyboardPaste(req, res, next) {
     const lang = (typeof req.body?.lang === 'string' && req.body.lang.trim()) ? req.body.lang : 'en';
     // default delay to 5 when missing/invalid; clamp to [5,100]
     let delay = req.body?.delay;
-    if (delay === undefined || delay === null || Number.isNaN(Number(delay))) {
+    if (delay == null || Number.isNaN(Number(delay))) {
       delay = 5;
     } else {
       delay = Math.max(5, Math.min(100, Math.floor(Number(delay))));
