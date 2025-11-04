@@ -24,6 +24,7 @@ import { apiBinState, apiCheckToken} from './state.route.js';
 import { apiVideoControl, apiVideoConfig, apiGetVideoState, apiRecording, apiResolutionChange, apiSnapshot, apiEdidInfo,  apiEdidSet } from './video.route.js';
 import KVMDMain from './kvmd_main.route.js';
 import { apiEnableHID, apiChangeMode, apiGetStatus, apiKeyboardPaste, apiKeyboardShortcuts, apiHIDLoopUpdate, apiHIDLoopStatus, apiKeyboardPasteLanguage, apiHIDLoopActive, apiHIDUpdateIdentity, apiHIDGetIdentity } from './hid.route.js';
+import { apiSendKeyEvent } from './keyboard.route.js';
 import {
   apiUpload,
   apiCreateMSD,
@@ -115,6 +116,7 @@ const routes = [
   { path: '/api/hid/loop', handler: apiHIDLoopActive, method: 'post' },
   { path: '/api/hid/identity', handler: apiHIDGetIdentity, method: 'get' },
   { path: '/api/hid/identity', handler: apiHIDUpdateIdentity, method: 'post' },
+  { path: '/api/hid/events/send_key', handler: apiSendKeyEvent, method: 'post' },
 
   //mouse
   { path: '/api/mouse/event', handler: apiMouseEvent, method: 'post' },
