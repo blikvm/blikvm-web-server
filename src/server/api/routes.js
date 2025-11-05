@@ -116,7 +116,7 @@ const routes = [
   { path: '/api/hid/loop', handler: apiHIDLoopActive, method: 'post' },
   { path: '/api/hid/identity', handler: apiHIDGetIdentity, method: 'get' },
   { path: '/api/hid/identity', handler: apiHIDUpdateIdentity, method: 'post' },
-  { path: '/api/hid/events/send_key', handler: apiSendKeyEvent, method: 'post' },
+  { path: '/api/hid/events', handler: apiSendKeyEvent, method: 'post' },
 
   //mouse
   { path: '/api/mouse/event', handler: apiMouseEvent, method: 'post' },
