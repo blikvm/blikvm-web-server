@@ -128,8 +128,6 @@ function apiEnableHID(req, res, next) {
     const hid = new HID();
     const mouse = new Mouse();
     const keyboard = new Keyboard();
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    let msdEnable;
     if (action === 'enable') {
       hid
         .startService()
@@ -185,7 +183,7 @@ function apiChangeMode(req, res, next) {
       .then(() => {
         returnObject.code = ApiCode.OK;
         returnObject.msg = `hid change mode to mouseMode:${mouseMode} successful`;
-        mouse._init();
+        mouse.init();
         mouse.open();
         keyboard.open();  
         res.json(returnObject);

@@ -115,7 +115,7 @@ class HID extends Module {
       if (this._state === ModuleState.RUNNING) {
         this.closeService()
           .then(() => {
-            return this.startService(mouseMode, config.msd.enable ? 'enable' : 'disable');
+            return this.startService();
           })
           .then(() => {
             writeJsonAtomic(CONFIG_PATH, (cfg) => {
@@ -129,7 +129,7 @@ class HID extends Module {
             reject(err);
           });
       } else {
-        this.startService(mouseMode, config.msd.enable ? 'enable' : 'disable')
+        this.startService()
           .then(() => {
             writeJsonAtomic(CONFIG_PATH, (cfg) => {
               cfg.hid.mouseMode = mouseMode;

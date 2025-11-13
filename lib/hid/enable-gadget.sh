@@ -360,7 +360,7 @@ configure_relative_mode() {
 # Determine the absolute mode
 mode="dual"
 msd="enable"
-mic="enable"
+mic="disable"
 for arg in "$@"; do
   case $arg in
     mouse_mode=*)
