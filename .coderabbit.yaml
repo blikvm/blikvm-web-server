@@ -1,0 +1,63 @@
+# CodeRabbit configuration for web_server (Node.js + Express)
+version: 1
+
+project:
+  name: blikvm-web-server
+  language: javascript
+  runtime: node
+  frameworks:
+    - express
+  description: Backend API & device control (USB gadget, ATX, HID). Emphasis on non-blocking I/O, robust error handling, and security hygiene.
+
+reviews:
+  path_filters:
+    - "src/**"
+    - "!lib/**"
+    - "!config/**"
+    - "!node_modules/**"
+    - "!dist/**"
+    - "!coverage/**"
+    - "!logs/**"
+    - "!**/*.map"
+    - "!**/*.min.js"
+    - "!**/__tests__/**"
+    - "!**/test/**"
+    - "!**/.vite/**"
+
+  tools:
+    eslint:
+      enabled: true
+    biome:
+      enabled: false
+
+  path_instructions:
+    - path: "src/**"
+      instructions: "Focus on API routes, gadget control, HID/ATX logic, error handling, input validation, and security."
+    - path: "lib/**"
+      instructions: "Review shell scripts and gadget configs; avoid blocking calls and ensure safe argument handling."
+    - path: "config/**"
+      instructions: "Check defaults and sensitive options; avoid hardcoding secrets."
+
+  max_comments: 70
+  summarize_findings: true
+  suggestions: true
+  security_scan: true
+
+style:
+  code_blocks: true
+  line_length: 120
+  markdown: true
+
+commits:
+  conventional: true
+
+checks:
+  - name: lint
+    required: false
+    description: ESLint passes for changed backend files.
+  - name: unit-tests
+    required: false
+    description: Added/changed logic covered by tests (if present).
+  - name: build
+    required: false
+    description: Server can start (e.g., node src/server/index.js).
