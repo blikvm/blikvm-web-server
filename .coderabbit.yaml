@@ -7,63 +7,36 @@ project:
   runtime: node
   frameworks:
     - express
-  description: Backend API & device control (USB gadget, ATX, HID). Emphasis on non‑blocking I/O, robust error handling, and security hygiene.
+  description: Backend API & device control (USB gadget, ATX, HID). Emphasis on non-blocking I/O, robust error handling, and security hygiene.
 
-review:
-  include:
+reviews:
+  path_filters:
     - "src/**"
-  exclude:
-    - "lib/**"
-    - "config/**"
-    - "node_modules/**"
-    - "dist/**"
-    - "coverage/**"
-    - "logs/**"
-    - "**/*.map"
-    - "**/*.min.js"
-    - "**/__tests__/**"
-    - "**/test/**"
-    - "**/.vite/**"
+    - "!lib/**"
+    - "!config/**"
+    - "!node_modules/**"
+    - "!dist/**"
+    - "!coverage/**"
+    - "!logs/**"
+    - "!**/*.map"
+    - "!**/*.min.js"
+    - "!**/__tests__/**"
+    - "!**/test/**"
+    - "!**/.vite/**"
 
-  rules:
-    - id: no-console
-      description: Prefer centralized logger over console.log in production paths.
-      severity: info
-      patterns:
-        - "console.log("
-    - id: sync-fs-in-request
-      description: Avoid synchronous fs.*Sync in request handlers (blocks event loop).
-      severity: warning
-      patterns:
-        - "fs.readFileSync("
-        - "fs.statSync("
-        - "fs.readdirSync("
-        - "fs.writeFileSync("
-    - id: shell-exec
-      description: Review child_process exec/execSync/spawn for unsanitized user input.
-      severity: warning
-      patterns:
-        - "exec("
-        - "execSync("
-        - "spawn("
-    - id: path-join
-      description: Use path.join / path.resolve instead of string concatenation for filesystem paths.
-      severity: suggestion
-      patterns:
-        - '"/" +'
-        - "'/' +"
-    - id: input-validation
-      description: Validate req.query / req.body / req.params before use (type / range / whitelist).
-      severity: suggestion
-    - id: error-propagation
-      description: Ensure caught errors are logged and sent via next(err) or structured JSON.
-      severity: info
-    - id: non-blocking
-      description: Large CPU work (JSON.parse huge payload, crypto, loops) should be offloaded or optimized.
-      severity: suggestion
-    - id: security-check
-      description: Watch for direct req.* concatenation into fs paths / shell args (path traversal / injection).
-      severity: warning
+  tools:
+    eslint:
+      enabled: true
+    biome:
+      enabled: false
+
+  path_instructions:
+    - path: "src/**"
+      instructions: "Focus on API routes, gadget control, HID/ATX logic, error handling, input validation, and security."
+    - path: "lib/**"
+      instructions: "Review shell scripts and gadget configs; avoid blocking calls and ensure safe argument handling."
+    - path: "config/**"
+      instructions: "Check defaults and sensitive options; avoid hardcoding secrets."
 
   max_comments: 70
   summarize_findings: true
@@ -87,10 +60,4 @@ checks:
     description: Added/changed logic covered by tests (if present).
   - name: build
     required: false
-    description: Server start (node src/server/index.js) should succeed.
-
-notes:
-  - Focus review on API routes, gadget control, HID, ATX logic, error handling, and security aspects.
-  - Avoid commenting on generated or vendored code.
-  - Prefer Promise-based fs API in performance-sensitive paths.
-  - Log operational errors once; avoid noisy duplicate logs.
+    description: Server can start (e.g., node src/server/index.js).
