@@ -384,6 +384,23 @@ class HttpServer {
     app.post('/api/login', apiLogin);
     app.get('/api/auth/state', apiGetAuthState);
     app.get('/api/virtual-media/:filename', apiDownloadFile);
+    
+    // OpenAPI documentation (public, no auth required)
+    app.get('/api/v1/docs', (req, res) => {
+      import('./api/v1/docs.route.js').then(module => {
+        module.getSwaggerUI(req, res, () => {});
+      });
+    });
+    app.get('/api/v1/docs/openapi.yaml', (req, res) => {
+      import('./api/v1/docs.route.js').then(module => {
+        module.getOpenAPISpec(req, res, () => {});
+      });
+    });
+    app.get('/api/v1/docs/openapi.json', (req, res) => {
+      import('./api/v1/docs.route.js').then(module => {
+        module.getOpenAPISpecJSON(req, res, () => {});
+      });
+    });
 
 
     const PrometheusMetricsObj = new PrometheusMetrics();
