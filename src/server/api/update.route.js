@@ -23,6 +23,7 @@ import path from 'path';
 import fs from 'fs';
 import https from 'https';
 import Logger from '../../log/logger.js';
+import { isAirGapFeatureEnabled } from './system/airgap.route.js';
 
 const logger = new Logger();
 const UPDATE_UNIT = 'blikvm-update'; // fixed unit name to ensure single instance via systemd
@@ -30,6 +31,11 @@ const TMP_SCRIPT = '/tmp/update.py'; // 下载后保存的位置
 
 // 下载 update.py ，优先 GitHub，10s 超时再尝试 Gitee
 async function downloadUpdatePy() {
+  // Check if air-gap mode blocks system updates
+  if (isAirGapFeatureEnabled('systemUpdates')) {
+    throw new Error('System updates are disabled in air-gap mode. Please download update.py manually and place it in /tmp/update.py');
+  }
+
   const urls = [
     'https://raw.githubusercontent.com/blikvm/blikvm/master/script/update.py',
     'https://gitee.com/blikvm/blikvm/raw/master/script/update.py',

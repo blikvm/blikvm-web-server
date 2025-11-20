@@ -1,6 +1,6 @@
 {
   "version": 10,
-  "deviceVersion": "BliKVM v3 HAT",
+  "deviceVersion": "BliKVM CM4",
   "log": {
     "console": {
       "enabled": true,
@@ -43,7 +43,7 @@
     "bin": "./lib/pi/ustreamer.bin",
     "fps": 30,
     "quality": 60,
-    "kbps": 2000,
+    "kbps": 7200,
     "gop": 60,
     "resolution": "1920x1080",
     "recordPath": "/mnt/tmp/record",
@@ -58,7 +58,7 @@
     "bin": "./lib/pi/kvmd-main"
   },
   "display": {
-    "mode": "interval",
+    "mode": "off",
     "onBootTime": 3600,
     "cycleInterval": 60,
     "displayTime": 10,
@@ -106,19 +106,29 @@
     "interval": 15
   },
   "fan": {
-    "tempThreshold": 68
+    "tempThreshold": 29
   },
   "healthCheck": {
-    "RAM": 0.8,
-    "storage": 0.7,
-    "latency": 80,
-    "temperature": 65
+    "RAM": 0.9,
+    "storage": 0.8,
+    "latency": 82,
+    "temperature": 64
   },
   "codeOfConduct": {
     "isActive": true,
     "url": ""
   },
   "mic": {
-    "isRegistered": false
+    "isRegistered": true
+  },
+  "airGap": {
+    "enabled": false,
+    "features": {
+      "systemUpdates": true,
+      "externalAssets": true,
+      "documentation": true
+    },
+    "lastModified": null,
+    "modifiedBy": null
   }
 }

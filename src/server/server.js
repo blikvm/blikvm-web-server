@@ -401,6 +401,11 @@ class HttpServer {
         module.getOpenAPISpecJSON(req, res, () => {});
       });
     });
+    app.get('/api/v1/docs/assets/:filename', (req, res) => {
+      import('./api/v1/docs.route.js').then(module => {
+        module.getSwaggerUIAsset(req, res, () => {});
+      });
+    });
 
 
     const PrometheusMetricsObj = new PrometheusMetrics();

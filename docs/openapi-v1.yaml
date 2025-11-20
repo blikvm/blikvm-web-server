@@ -114,6 +114,101 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /system/airgap:
+    get:
+      summary: Get air-gap mode status
+      description: Returns the current air-gap mode configuration and status
+      operationId: getAirGapStatus
+      tags:
+        - System Management
+      responses:
+        '200':
+          description: Air-gap status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirGapStatus'
+              examples:
+                disabled:
+                  summary: Air-gap mode disabled
+                  value:
+                    enabled: false
+                    features:
+                      systemUpdates: true
+                      externalAssets: true
+                      documentation: true
+                    lastModified: null
+                    modifiedBy: null
+                    blockedServices: []
+                    affectedFeatures: []
+                enabled:
+                  summary: Air-gap mode enabled
+                  value:
+                    enabled: true
+                    features:
+                      systemUpdates: true
+                      externalAssets: true
+                      documentation: true
+                    lastModified: "2025-11-20T17:30:00Z"
+                    modifiedBy: "admin"
+                    blockedServices: ["GitHub update downloads", "CDN asset loading"]
+                    affectedFeatures: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Enable or disable air-gap mode
+      description: |
+        Enable or disable air-gap mode for enhanced security in isolated environments.
+        
+        **Air-gap mode blocks:**
+        - System update downloads from GitHub/Gitee
+        - External CDN assets (Swagger UI, fonts)
+        - External network requests
+        
+        **Local services continue working:**
+        - All KVM functionality (video, keyboard, mouse, ATX)
+        - Local network discovery (mDNS)
+        - Wake-on-LAN
+        - Internal system management
+      operationId: setAirGapMode
+      tags:
+        - System Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AirGapRequest'
+            examples:
+              enable:
+                summary: Enable air-gap mode
+                value:
+                  enabled: true
+                  features:
+                    systemUpdates: true
+                    externalAssets: true
+                    documentation: true
+              disable:
+                summary: Disable air-gap mode
+                value:
+                  enabled: false
+      responses:
+        '200':
+          description: Air-gap mode updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirGapStatus'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /atx/power:
     get:
       summary: Get current power state
@@ -273,6 +368,92 @@ components:
           example: true
       additionalProperties: false
 
+    AirGapStatus:
+      type: object
+      required:
+        - enabled
+        - features
+        - blockedServices
+        - affectedFeatures
+      properties:
+        enabled:
+          type: boolean
+          description: Whether air-gap mode is currently enabled
+          example: false
+        features:
+          type: object
+          properties:
+            systemUpdates:
+              type: boolean
+              description: Block system update downloads
+              example: true
+            externalAssets:
+              type: boolean
+              description: Block external CDN assets
+              example: true
+            documentation:
+              type: boolean
+              description: Block external documentation assets
+              example: true
+          description: Air-gap feature configuration
+        lastModified:
+          type: string
+          format: date-time
+          nullable: true
+          description: When air-gap mode was last modified
+          example: "2025-11-20T17:30:00Z"
+        modifiedBy:
+          type: string
+          nullable: true
+          description: User who last modified air-gap mode
+          example: "admin"
+        blockedServices:
+          type: array
+          items:
+            type: string
+          description: List of services currently blocked
+          example: ["GitHub update downloads", "CDN asset loading"]
+        affectedFeatures:
+          type: array
+          items:
+            type: object
+            properties:
+              feature:
+                type: string
+                description: Name of affected feature
+              impact:
+                type: string
+                description: Description of impact
+              workaround:
+                type: string
+                description: Suggested workaround
+          description: Features that may be affected by air-gap mode
+      additionalProperties: false
+
+    AirGapRequest:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Enable or disable air-gap mode
+          example: true
+        features:
+          type: object
+          properties:
+            systemUpdates:
+              type: boolean
+              description: Block system update downloads
+            externalAssets:
+              type: boolean
+              description: Block external CDN assets
+            documentation:
+              type: boolean
+              description: Block external documentation assets
+          description: Optional feature configuration
+      additionalProperties: false
+
     ErrorResponse:
       type: object
       required:
@@ -383,3 +564,17 @@ tags:
       - `long_press`/`off` actions force immediate power off (may cause data loss)
       - Always ensure target server applications are properly shut down before power operations
       - Reset operations may interrupt ongoing processes
+
+  - name: System Management
+    description: |
+      System-level configuration and security settings for the BliKVM device.
+      
+      These endpoints control device behavior, security features, and operational modes.
+      Air-gap mode is particularly important for high-security environments where external
+      network access must be strictly controlled.
+      
+      **Air-Gap Mode:**
+      - Blocks external network requests (GitHub, CDN, etc.)
+      - Maintains full KVM functionality
+      - Allows local network operations (mDNS, WOL)
+      - Provides manual override capabilities
