@@ -5,6 +5,7 @@
 
 import { api } from './_helpers/apiClient.js';
 import { isMdnsEnabled } from '../src/server/api/system/mdns.route.js';
+import { configEvents } from '../src/server/events/config-events.js';
 
 // Helper function to handle API calls that may fail due to auth or server not running
 async function safeApiCall(method, path, body, expectedStatus = 200) {
@@ -260,6 +261,220 @@ describe('mDNS (Multicast DNS) Tests', () => {
       await safeApiCall('PUT', '/api/system/mdns', {
         enabled: initialState
       });
+    });
+  });
+
+  describe('Event-Driven Configuration Changes', () => {
+    test('mDNS config changes emit events', (done) => {
+      let eventReceived = false;
+      
+      // Set up event listener
+      const eventHandler = (eventData) => {
+        try {
+          expect(eventData).toHaveProperty('configPath', 'mdns');
+          expect(eventData).toHaveProperty('newValue');
+          expect(eventData).toHaveProperty('oldValue');
+          expect(eventData).toHaveProperty('changedBy');
+          expect(eventData).toHaveProperty('timestamp');
+          
+          eventReceived = true;
+          configEvents.offConfigChange('mdns', eventHandler);
+          done();
+        } catch (error) {
+          configEvents.offConfigChange('mdns', eventHandler);
+          done(error);
+        }
+      };
+
+      configEvents.onConfigChange('mdns', eventHandler);
+
+      // Trigger config change that should emit event
+      api('PUT', '/api/system/mdns', { enabled: true })
+        .then(() => {
+          // Give event time to be processed
+          setTimeout(() => {
+            if (!eventReceived) {
+              configEvents.offConfigChange('mdns', eventHandler);
+              done(new Error('Event was not emitted within timeout'));
+            }
+          }, 100);
+        })
+        .catch((error) => {
+          if (error.code === 'ECONNREFUSED') {
+            // No server running - skip this test
+            configEvents.offConfigChange('mdns', eventHandler);
+            done();
+          } else {
+            configEvents.offConfigChange('mdns', eventHandler);
+            done(error);
+          }
+        });
+    });
+
+    test('event data includes correct old and new values', (done) => {
+      let firstEventReceived = false;
+      
+      const firstHandler = (eventData) => {
+        try {
+          expect(eventData.newValue).toBe(false);
+          expect(eventData.oldValue).toBe(true);
+          firstEventReceived = true;
+          configEvents.offConfigChange('mdns', firstHandler);
+          
+          // Set up second event listener
+          const secondHandler = (eventData) => {
+            try {
+              expect(eventData.newValue).toBe(true);
+              expect(eventData.oldValue).toBe(false);
+              configEvents.offConfigChange('mdns', secondHandler);
+              done();
+            } catch (error) {
+              configEvents.offConfigChange('mdns', secondHandler);
+              done(error);
+            }
+          };
+
+          configEvents.onConfigChange('mdns', secondHandler);
+
+          // Re-enable mDNS (second change)
+          api('PUT', '/api/system/mdns', { enabled: true }).catch((error) => {
+            if (error.code === 'ECONNREFUSED') {
+              configEvents.offConfigChange('mdns', secondHandler);
+              done();
+            } else {
+              configEvents.offConfigChange('mdns', secondHandler);
+              done(error);
+            }
+          });
+        } catch (error) {
+          configEvents.offConfigChange('mdns', firstHandler);
+          done(error);
+        }
+      };
+
+      configEvents.onConfigChange('mdns', firstHandler);
+
+      // Disable mDNS (first change)
+      api('PUT', '/api/system/mdns', { enabled: false }).catch((error) => {
+        if (error.code === 'ECONNREFUSED') {
+          configEvents.offConfigChange('mdns', firstHandler);
+          done();
+        } else {
+          configEvents.offConfigChange('mdns', firstHandler);
+          done(error);
+        }
+      });
+    });
+
+    test('multiple event listeners receive the same event', (done) => {
+      const listeners = [];
+      let receivedCount = 0;
+      const expectedListeners = 3;
+
+      const createHandler = (listenerName) => (eventData) => {
+        try {
+          expect(eventData).toHaveProperty('configPath', 'mdns');
+          expect(eventData.changedBy).toBe('unknown'); // Default value in tests
+          receivedCount++;
+          
+          if (receivedCount === expectedListeners) {
+            // All listeners received the event, cleanup
+            listeners.forEach(({ name, handler }) => {
+              configEvents.offConfigChange('mdns', handler);
+            });
+            done();
+          }
+        } catch (error) {
+          listeners.forEach(({ name, handler }) => {
+            configEvents.offConfigChange('mdns', handler);
+          });
+          done(error);
+        }
+      };
+
+      // Set up multiple listeners
+      for (let i = 1; i <= expectedListeners; i++) {
+        const handler = createHandler(`listener${i}`);
+        listeners.push({ name: `listener${i}`, handler });
+        configEvents.onConfigChange('mdns', handler);
+      }
+
+      // Trigger single event
+      api('PUT', '/api/system/mdns', { enabled: true }).catch((error) => {
+        if (error.code === 'ECONNREFUSED') {
+          listeners.forEach(({ name, handler }) => {
+            configEvents.offConfigChange('mdns', handler);
+          });
+          done();
+        } else {
+          listeners.forEach(({ name, handler }) => {
+            configEvents.offConfigChange('mdns', handler);
+          });
+          done(error);
+        }
+      });
+    });
+
+    test('event listener can be removed', (done) => {
+      let eventReceived = false;
+      
+      const handler = (eventData) => {
+        eventReceived = true;
+        done(new Error('Event handler should not have been called after removal'));
+      };
+
+      // Add then immediately remove listener
+      configEvents.onConfigChange('mdns', handler);
+      configEvents.offConfigChange('mdns', handler);
+
+      // Trigger event
+      api('PUT', '/api/system/mdns', { enabled: true })
+        .then(() => {
+          // Wait to ensure event would have been processed
+          setTimeout(() => {
+            expect(eventReceived).toBe(false);
+            done();
+          }, 100);
+        })
+        .catch((error) => {
+          if (error.code === 'ECONNREFUSED') {
+            done();
+          } else {
+            done(error);
+          }
+        });
+    });
+
+    test('configEvents singleton maintains state across imports', () => {
+      const configEvents1 = require('../src/server/events/config-events.js').configEvents;
+      const configEvents2 = require('../src/server/events/config-events.js').configEvents;
+      
+      // Should be the same instance
+      expect(configEvents1).toBe(configEvents2);
+      expect(configEvents1).toBe(configEvents);
+    });
+
+    test('event emitter handles errors gracefully', (done) => {
+      const badHandler = () => {
+        throw new Error('Handler error');
+      };
+
+      // Should not crash when a handler throws
+      configEvents.onConfigChange('mdns', badHandler);
+      
+      // Since emitConfigChange uses setImmediate, we need to wait for the async error handling
+      configEvents.emitConfigChange('mdns', {
+        newValue: true,
+        oldValue: false,
+        changedBy: 'test'
+      });
+      
+      // Wait for async emission to complete
+      setTimeout(() => {
+        configEvents.offConfigChange('mdns', badHandler);
+        // If we get here, the error was handled gracefully
+        done();
+      }, 10);
     });
   });
 

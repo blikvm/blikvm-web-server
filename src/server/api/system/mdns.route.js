@@ -8,7 +8,7 @@ import { createApiObj, ApiCode } from '../../../common/api.js';
 import { writeJsonAtomic } from '../../../common/atomic-file.js';
 import { CONFIG_PATH, UTF8 } from '../../../common/constants.js';
 import Logger from '../../../log/logger.js';
-import HttpServer from '../../server.js';
+import { configEvents } from '../../events/config-events.js';
 
 const logger = new Logger();
 
@@ -66,6 +66,10 @@ export async function setMdnsMode(req, res, next) {
     const user = req.user || { username: 'unknown' };
     const timestamp = new Date().toISOString();
 
+    // Store old value for event data
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    const oldValue = config.mdns?.enabled !== undefined ? !!config.mdns.enabled : true;
+
     await writeJsonAtomic(CONFIG_PATH, (config) => {
       if (!config.mdns) {
         config.mdns = {
@@ -80,17 +84,15 @@ export async function setMdnsMode(req, res, next) {
       config.mdns.modifiedBy = user.username;
     });
 
-    logger.info(`[mdns] mDNS service ${enabled ? 'enabled' : 'disabled'} by ${user.username}`);
+    // Emit configuration change event for dynamic server updates
+    configEvents.emitConfigChange('mdns', {
+      newValue: enabled,
+      oldValue: oldValue,
+      changedBy: user.username,
+      timestamp: timestamp
+    });
 
-    // Restart mDNS service to apply changes
-    const server = HttpServer.getInstance();
-    if (server) {
-      try {
-        server.restartMdns();
-      } catch (error) {
-        logger.warn(`[mdns] Failed to restart mDNS service: ${error.message}`);
-      }
-    }
+    logger.info(`[mdns] mDNS service ${enabled ? 'enabled' : 'disabled'} by ${user.username}`);
 
     // Return updated status
     const updatedConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));

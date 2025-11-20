@@ -56,6 +56,7 @@ import { createSerialServer } from './serialServer.js';
 import os from 'os';
 import mdns from 'multicast-dns';
 import { isMdnsEnabled } from './api/system/mdns.route.js';
+import { configEvents } from './events/config-events.js';
 
 const logger = new Logger();
 
@@ -162,6 +163,7 @@ class HttpServer {
     if (!HttpServer._instance) {
       HttpServer._instance = this;
       this._init();
+      this._setupEventListeners();
     }
 
     return HttpServer._instance;
@@ -846,6 +848,21 @@ class HttpServer {
         logger.warn(`mDNS restart failed: ${e.message}`);
       }
     }
+  }
+
+  /**
+   * Set up event listeners for configuration changes
+   * Enables dynamic service reconfiguration without restart
+   * @private
+   */
+  _setupEventListeners() {
+    // Listen for mDNS configuration changes
+    configEvents.onConfigChange('mdns', (eventData) => {
+      logger.info(`[server] mDNS config changed by ${eventData.changedBy}, restarting service`);
+      this.restartMdns();
+    });
+
+    logger.debug('[server] Configuration event listeners initialized');
   }
 }
 export default HttpServer;
