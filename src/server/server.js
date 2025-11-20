@@ -31,6 +31,8 @@ import bodyParser from 'body-parser';
 import Logger from '../log/logger.js';
 import fs from 'fs';
 import routes from './api/routes.js';
+import v1Routes from './api/v1/routes.js';
+import { openApiErrorHandler } from './middleware/openapi-validator.js';
 import { WebSocketServer, WebSocket } from 'ws';
 import Mouse from './mouse.js';
 import Keyboard from './keyboard.js';
@@ -396,6 +398,7 @@ class HttpServer {
 
     app.use(this._httpRecorderMiddle);
     startTusServer();  // start tus server
+    // Mount legacy API routes
     routes.forEach((route) => {
       if (route.method === 'get') {
         app.get(route.path, route.handler);
@@ -407,6 +410,25 @@ class HttpServer {
         app.patch(route.path, route.handler);
       }
     });
+
+    // Mount OpenAPI v1 routes
+    v1Routes.forEach((route) => {
+      const middlewares = route.middleware || [];
+      if (route.method === 'get') {
+        app.get(route.path, ...middlewares, route.handler);
+      } else if (route.method === 'post') {
+        app.post(route.path, ...middlewares, route.handler);
+      } else if (route.method === 'put') {
+        app.put(route.path, ...middlewares, route.handler);
+      } else if (route.method === 'patch') {
+        app.patch(route.path, ...middlewares, route.handler);
+      } else if (route.method === 'delete') {
+        app.delete(route.path, ...middlewares, route.handler);
+      }
+    });
+
+    // OpenAPI v1 error handler (before general error handler)
+    app.use('/api/v1/*', openApiErrorHandler);
 
     app.use(this._httpErrorMiddle);
 
