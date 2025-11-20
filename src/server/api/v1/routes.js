@@ -5,6 +5,7 @@
 
 import { getATXPower, setATXPower, getATXActive, setATXActive } from './atx.route.js';
 import { getAirGapStatus, setAirGapMode } from '../system/airgap.route.js';
+import { getMdnsStatus, setMdnsMode } from '../system/mdns.route.js';
 import { validateRequestBody } from '../../middleware/openapi-validator.js';
 import { 
   ATXPowerRequestSchema, 
@@ -54,6 +55,20 @@ const v1Routes = [
     path: '/api/v1/system/airgap',
     method: 'put',
     handler: setAirGapMode,
+    middleware: []
+  },
+
+  // System mDNS Management
+  {
+    path: '/api/v1/system/mdns',
+    method: 'get',
+    handler: getMdnsStatus,
+    middleware: []
+  },
+  {
+    path: '/api/v1/system/mdns',
+    method: 'put',
+    handler: setMdnsMode,
     middleware: []
   }
 ];
