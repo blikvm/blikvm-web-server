@@ -1,0 +1,385 @@
+openapi: 3.0.3
+info:
+  title: BliKVM API v1
+  description: |
+    REST-compliant API for BliKVM remote server management.
+    
+    This API provides modern, type-safe endpoints following OpenAPI 3.0 specification.
+    All v1 endpoints maintain backward compatibility with legacy endpoints.
+    
+    ## Authentication
+    All endpoints require JWT token authentication via Authorization header:
+    ```
+    Authorization: Bearer <jwt-token>
+    ```
+    
+    ## Error Handling
+    All endpoints return consistent error format:
+    ```json
+    {
+      "msg": "Error description",
+      "code": "ERROR_CODE", 
+      "data": {
+        "errors": [...]
+      }
+    }
+    ```
+    
+    ## Migration from Legacy API
+    - Legacy `/api/atx` → v1 `/api/v1/atx`
+    - Legacy `/api/atx/power` → v1 `/api/v1/atx/power`
+    - Legacy uses query params/form data → v1 uses JSON request bodies
+    - Legacy returns wrapped responses → v1 returns direct schema objects
+    
+  version: 1.0.0
+  contact:
+    name: BliKVM Project
+    url: https://github.com/blikvm/blikvm
+  license:
+    name: GPL-3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+
+servers:
+  - url: https://{host}/api/v1
+    description: BliKVM Server
+    variables:
+      host:
+        default: localhost
+        description: BliKVM device IP address or hostname
+
+security:
+  - bearerAuth: []
+
+paths:
+  /atx:
+    get:
+      summary: Get ATX active state
+      description: Returns whether ATX power control is currently enabled
+      operationId: getATXActive
+      tags:
+        - ATX Power Control
+      responses:
+        '200':
+          description: ATX active state retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ATXActiveState'
+              examples:
+                enabled:
+                  summary: ATX enabled
+                  value:
+                    enabled: true
+                disabled:
+                  summary: ATX disabled
+                  value:
+                    enabled: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Enable or disable ATX
+      description: Enable or disable ATX power control functionality
+      operationId: setATXActive
+      tags:
+        - ATX Power Control
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ATXActiveRequest'
+            examples:
+              enable:
+                summary: Enable ATX
+                value:
+                  enabled: true
+              disable:
+                summary: Disable ATX
+                value:
+                  enabled: false
+      responses:
+        '200':
+          description: ATX active state updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ATXActiveState'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /atx/power:
+    get:
+      summary: Get current power state
+      description: Returns the current power state of the target server
+      operationId: getATXPower
+      tags:
+        - ATX Power Control
+      responses:
+        '200':
+          description: Power state retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ATXPowerState'
+              examples:
+                power_on:
+                  summary: Server is powered on
+                  value:
+                    enabled: true
+                    power: "on"
+                power_off:
+                  summary: Server is powered off
+                  value:
+                    enabled: true
+                    power: "off"
+                unknown:
+                  summary: Power state unknown
+                  value:
+                    enabled: true
+                    power: "unknown"
+                disabled:
+                  summary: ATX disabled
+                  value:
+                    enabled: false
+                    power: "unknown"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Control server power
+      description: |
+        Execute power control actions on the target server.
+        
+        **Actions:**
+        - `on` / `short_press`: Short press power button (typically powers on)
+        - `off` / `long_press`: Long press power button (force power off, 5+ seconds)
+        - `reset`: Press reset button (hard reset)
+        
+        **Note:** Actual behavior depends on target server's BIOS/UEFI settings.
+      operationId: setATXPower
+      tags:
+        - ATX Power Control
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ATXPowerRequest'
+            examples:
+              power_on:
+                summary: Power on server
+                value:
+                  action: "on"
+              power_off:
+                summary: Force power off
+                value:
+                  action: "off"
+              reset:
+                summary: Reset server
+                value:
+                  action: "reset"
+              short_press:
+                summary: Short press power button
+                value:
+                  action: "short_press"
+              long_press:
+                summary: Long press power button
+                value:
+                  action: "long_press"
+      responses:
+        '200':
+          description: Power action executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ATXPowerState'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+
+  schemas:
+    ATXPowerState:
+      type: object
+      required:
+        - enabled
+        - power
+      properties:
+        enabled:
+          type: boolean
+          description: Whether ATX control is currently enabled
+          example: true
+        power:
+          type: string
+          enum: [on, off, unknown]
+          description: Current power state of the target server
+          example: "on"
+      additionalProperties: false
+
+    ATXActiveState:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Whether ATX power control is enabled
+          example: true
+      additionalProperties: false
+
+    ATXPowerRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum: [on, off, reset, short_press, long_press]
+          description: |
+            Power action to execute:
+            - `on` / `short_press`: Short press power button
+            - `off` / `long_press`: Long press power button (force off)
+            - `reset`: Press reset button
+          example: "reset"
+      additionalProperties: false
+
+    ATXActiveRequest:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Enable or disable ATX power control
+          example: true
+      additionalProperties: false
+
+    ErrorResponse:
+      type: object
+      required:
+        - msg
+        - code
+      properties:
+        msg:
+          type: string
+          description: Human-readable error message
+          example: "Request validation failed"
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "INVALID_INPUT_PARAM"
+        data:
+          type: object
+          description: Additional error details
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    description: Field that caused the error
+                    example: "action"
+                  message:
+                    type: string
+                    description: Validation error message
+                    example: "must be equal to one of the allowed values"
+                  value:
+                    description: The invalid value that was provided
+
+  responses:
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_action:
+              summary: Invalid power action
+              value:
+                msg: "Request validation failed"
+                code: "INVALID_INPUT_PARAM"
+                data:
+                  errors:
+                    - field: "action"
+                      message: "must be equal to one of the allowed values"
+                      value: "invalid_action"
+            missing_field:
+              summary: Missing required field
+              value:
+                msg: "Request validation failed"
+                code: "INVALID_INPUT_PARAM"
+                data:
+                  errors:
+                    - field: "action"
+                      message: "must have required property 'action'"
+            extra_field:
+              summary: Additional properties not allowed
+              value:
+                msg: "Request validation failed"
+                code: "INVALID_INPUT_PARAM"
+                data:
+                  errors:
+                    - field: "extraField"
+                      message: "must NOT have additional properties"
+
+    Unauthorized:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            msg: "token is null!"
+            code: "NULL_TOKEN"
+            data: {}
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            msg: "Internal server error"
+            code: "INTERNAL_SERVER_ERROR"
+            data: {}
+
+tags:
+  - name: ATX Power Control
+    description: |
+      Control target server power state via ATX power and reset buttons.
+      
+      These endpoints provide remote control over the target server's hardware power buttons,
+      allowing you to power on, power off, or reset the server as if you were physically
+      pressing the buttons on the server case.
+      
+      **Hardware Requirements:**
+      - BliKVM device connected to target server's ATX power/reset headers
+      - Proper GPIO configuration for ATX control
+      
+      **Safety Notes:**
+      - `long_press`/`off` actions force immediate power off (may cause data loss)
+      - Always ensure target server applications are properly shut down before power operations
+      - Reset operations may interrupt ongoing processes
