@@ -50,6 +50,7 @@ import {
 } from './switch.route.js';
 import { apiReboot, apiGetSystemInfo, apiGetLogs, apiUpdateHostname } from './system.routes.js';
 import { getAirGapStatus, setAirGapMode } from './system/airgap.route.js';
+import { getMdnsStatus, setMdnsMode } from './system/mdns.route.js';
 import { apiOcr } from './ocr.route.js';
 import { apiWakeOnLan, apiSendWakeOnLanList, apiGetWakeOnLanList, apiAddWakeOnLan, apiDeleteWakeOnLan} from './wol.route.js'; 
 import { apiMouseJiggler, apiMouseEvent } from './mouse.route.js';
@@ -165,6 +166,8 @@ const routes = [
   { path: '/api/logs', handler: apiGetLogs, method: 'post' },
   { path: '/api/system/airgap', handler: getAirGapStatus, method: 'get' },
   { path: '/api/system/airgap', handler: setAirGapMode, method: 'put' },
+  { path: '/api/system/mdns', handler: getMdnsStatus, method: 'get' },
+  { path: '/api/system/mdns', handler: setMdnsMode, method: 'put' },
   { path: '/api/auth/', handler: apiEnabledAuth, method: 'post' },
   { path: '/api/auth/state', handler: apiGetAuthState, method: 'get' },
 

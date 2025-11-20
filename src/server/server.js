@@ -55,6 +55,7 @@ import { PrometheusMetrics, BasicAuthObj } from './prometheus.js';
 import { createSerialServer } from './serialServer.js';
 import os from 'os';
 import mdns from 'multicast-dns';
+import { isMdnsEnabled } from './api/system/mdns.route.js';
 
 const logger = new Logger();
 
@@ -95,6 +96,15 @@ class HttpServer {
    * @private
    */
   static _instance = null;
+
+  /**
+   * Get the singleton instance of HttpServer
+   * @returns {HttpServer|null} The singleton instance or null if not created
+   * @static
+   */
+  static getInstance() {
+    return HttpServer._instance;
+  }
 
   /**
    * The name of the HTTP API.
@@ -186,8 +196,8 @@ class HttpServer {
     return new Promise((resolve, reject) => {
       this._state = HttpServerState.STARTING;
 
-      // start app-level mDNS responder based on config (server.mdnsEnabled)
-      if (this._mdnsEnabled) {
+      // start app-level mDNS responder based on dynamic config
+      if (isMdnsEnabled()) {
         try {
           this._startMdns();
         } catch (e) {
@@ -753,6 +763,12 @@ class HttpServer {
   }
 
   _startMdns() {
+    // Skip if mDNS is already running
+    if (this._mdns) {
+      logger.debug('mDNS: service already running');
+      return;
+    }
+
     // Determine and cache mDNS hostname (env > system hostname > default)
     if (!this._mdnsName) {
       let hn = process.env.MDNS_NAME || os.hostname() || 'blikvm';
@@ -803,6 +819,33 @@ class HttpServer {
     try { this._mdns.respond({ answers }); } catch { }
 
     logger.info(`mDNS: advertising ${name} -> ${addresses.join(', ')}`);
+  }
+
+  _stopMdns() {
+    if (this._mdns) {
+      try {
+        this._mdns.destroy();
+        logger.info('mDNS: service stopped');
+      } catch (e) {
+        logger.warn(`mDNS: stop failed: ${e.message}`);
+      }
+      this._mdns = null;
+    }
+  }
+
+  /**
+   * Restart mDNS service based on current configuration
+   * Called when mDNS settings are changed via API
+   */
+  restartMdns() {
+    this._stopMdns();
+    if (isMdnsEnabled()) {
+      try {
+        this._startMdns();
+      } catch (e) {
+        logger.warn(`mDNS restart failed: ${e.message}`);
+      }
+    }
   }
 }
 export default HttpServer;

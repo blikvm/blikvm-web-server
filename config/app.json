@@ -130,5 +130,10 @@
     },
     "lastModified": null,
     "modifiedBy": null
+  },
+  "mdns": {
+    "enabled": true,
+    "lastModified": null,
+    "modifiedBy": null
   }
 }
