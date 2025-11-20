@@ -4,6 +4,7 @@
  */
 
 import { getATXPower, setATXPower, getATXActive, setATXActive } from './atx.route.js';
+import { getAirGapStatus, setAirGapMode } from '../system/airgap.route.js';
 import { validateRequestBody } from '../../middleware/openapi-validator.js';
 import { 
   ATXPowerRequestSchema, 
@@ -40,6 +41,20 @@ const v1Routes = [
     method: 'put',
     handler: setATXActive,
     middleware: [validateRequestBody(ATXActiveRequestSchema)]
+  },
+
+  // System Air-Gap Management
+  {
+    path: '/api/v1/system/airgap',
+    method: 'get',
+    handler: getAirGapStatus,
+    middleware: []
+  },
+  {
+    path: '/api/v1/system/airgap',
+    method: 'put',
+    handler: setAirGapMode,
+    middleware: []
   }
 ];
 

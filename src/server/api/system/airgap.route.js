@@ -29,8 +29,7 @@ export async function getAirGapStatus(req, res, next) {
       modifiedBy: null
     };
 
-    const ret = createApiObj();
-    ret.data = {
+    const data = {
       enabled: airGap.enabled,
       features: airGap.features,
       lastModified: airGap.lastModified,
@@ -38,9 +37,19 @@ export async function getAirGapStatus(req, res, next) {
       blockedServices: airGap.enabled ? getBlockedServices(airGap.features) : [],
       affectedFeatures: getAffectedFeatures()
     };
-    ret.code = ApiCode.OK;
+
+    // Check if this is a v1 API request (direct format)
+    const isV1 = req.path.startsWith('/api/v1/');
     
-    res.json(ret);
+    if (isV1) {
+      res.json(data);
+    } else {
+      // Legacy format with wrapper
+      const ret = createApiObj();
+      ret.data = data;
+      ret.code = ApiCode.OK;
+      res.json(ret);
+    }
   } catch (error) {
     logger.error(`[airgap] Failed to get air-gap status: ${error.message}`);
     next(error);
@@ -56,10 +65,26 @@ export async function setAirGapMode(req, res, next) {
     const { enabled, features } = req.body;
     
     if (typeof enabled !== 'boolean') {
-      const ret = createApiObj();
-      ret.code = ApiCode.INVALID_INPUT_PARAM;
-      ret.msg = 'enabled field must be a boolean value';
-      return res.status(400).json(ret);
+      const isV1 = req.path.startsWith('/api/v1/');
+      
+      if (isV1) {
+        return res.status(400).json({
+          msg: 'Request validation failed',
+          code: 'INVALID_INPUT_PARAM',
+          data: {
+            errors: [{
+              field: 'enabled',
+              message: 'must be boolean',
+              value: enabled
+            }]
+          }
+        });
+      } else {
+        const ret = createApiObj();
+        ret.code = ApiCode.INVALID_INPUT_PARAM;
+        ret.msg = 'enabled field must be a boolean value';
+        return res.status(400).json(ret);
+      }
     }
 
     // Get user info for audit trail
@@ -97,8 +122,7 @@ export async function setAirGapMode(req, res, next) {
 
     // Return updated status
     const updatedConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    const ret = createApiObj();
-    ret.data = {
+    const data = {
       enabled: updatedConfig.airGap.enabled,
       features: updatedConfig.airGap.features,
       lastModified: updatedConfig.airGap.lastModified,
@@ -106,9 +130,19 @@ export async function setAirGapMode(req, res, next) {
       blockedServices: enabled ? getBlockedServices(updatedConfig.airGap.features) : [],
       affectedFeatures: getAffectedFeatures()
     };
-    ret.code = ApiCode.OK;
+
+    // Check if this is a v1 API request (direct format)
+    const isV1 = req.path.startsWith('/api/v1/');
     
-    res.json(ret);
+    if (isV1) {
+      res.json(data);
+    } else {
+      // Legacy format with wrapper
+      const ret = createApiObj();
+      ret.data = data;
+      ret.code = ApiCode.OK;
+      res.json(ret);
+    }
   } catch (error) {
     logger.error(`[airgap] Failed to set air-gap mode: ${error.message}`);
     next(error);
