@@ -7,3 +7,7 @@ config/firmware.json
 build/
 dist/
 lib/ventoy-1.0.99/tool/aarch64/*.xz
+core
+*.traineddata
+*.core
+*.dump
