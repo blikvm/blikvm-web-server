@@ -54,9 +54,12 @@ import httpProxy from 'http-proxy';
 import { PrometheusMetrics, BasicAuthObj } from './prometheus.js';
 import { createSerialServer } from './serialServer.js';
 import os from 'os';
-import mdns from 'multicast-dns';
+import { exec } from 'child_process';
+import util from 'util';
 import { isMdnsEnabled } from './api/system/mdns.route.js';
 import { configEvents } from './events/config-events.js';
+
+const execAsync = util.promisify(exec);
 
 const logger = new Logger();
 
@@ -195,13 +198,13 @@ class HttpServer {
    * @property {string} msg - The message describing the state of the service.
    */
   startService() {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       this._state = HttpServerState.STARTING;
 
       // start app-level mDNS responder based on dynamic config
       if (isMdnsEnabled()) {
         try {
-          this._startMdns();
+          await this._startMdns();
         } catch (e) {
           logger.warn(`mDNS start failed: ${e.message}`);
         }
@@ -764,9 +767,9 @@ class HttpServer {
     res.status(500).json(ret);
   }
 
-  _startMdns() {
+  async _startMdns() {
     // Skip if mDNS is already running
-    if (this._mdns) {
+    if (this._mdnsServiceName) {
       logger.debug('mDNS: service already running');
       return;
     }
@@ -784,54 +787,65 @@ class HttpServer {
       this._mdnsName = hn;
     }
 
-    // Advertise A record for <name>.local pointing to local IPv4s
-    const name = `${this._mdnsName}.local`;
-    const addresses = [];
-    const ifaces = os.networkInterfaces();
-    for (const key of Object.keys(ifaces)) {
-      for (const addr of ifaces[key]) {
-        if (!addr.internal && addr.family === 'IPv4') {
-          addresses.push(addr.address);
-        }
-      }
-    }
-    if (addresses.length === 0) {
-      logger.warn('mDNS: no non-internal IPv4 address found; skipping announce');
-      return;
-    }
-    this._mdns = mdns();
+    // Get server port from configuration
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    const serverPort = config.server?.port || 443;
+    const protocol = config.server?.protocol || 'https';
 
-    // Respond to queries for our name
-    this._mdns.on('query', (q) => {
-      q.questions.forEach((qq) => {
-        if (qq.name === name && (qq.type === 'A' || qq.type === 'ANY')) {
-          const answers = addresses.map((ip) => ({
-            name,
-            type: 'A',
-            ttl: 120,
-            data: ip
-          }));
-          this._mdns.respond({ answers });
-        }
+    try {
+      // Use avahi-publish-service to register BliKVM service
+      // Format: avahi-publish-service <service-name> <service-type> <port> [TXT records]
+      const serviceName = this._mdnsName;
+      const serviceType = '_blikvm._tcp';
+      const txtRecords = `protocol=${protocol} version=1.0.0`;
+      
+      const publishCmd = `avahi-publish-service "${serviceName}" "${serviceType}" ${serverPort} ${txtRecords}`;
+      
+      // Start avahi-publish-service as a background process
+      const { spawn } = await import('child_process');
+      this._mdnsProcess = spawn('avahi-publish-service', [
+        serviceName,
+        serviceType, 
+        serverPort.toString(),
+        txtRecords
+      ], {
+        detached: false,
+        stdio: 'pipe'
       });
-    });
 
-    // Proactively announce once on start
-    const answers = addresses.map((ip) => ({ name, type: 'A', ttl: 120, data: ip }));
-    try { this._mdns.respond({ answers }); } catch { }
+      this._mdnsProcess.on('error', (err) => {
+        logger.warn(`mDNS: avahi-publish-service error: ${err.message}`);
+        this._mdnsProcess = null;
+        this._mdnsServiceName = null;
+      });
 
-    logger.info(`mDNS: advertising ${name} -> ${addresses.join(', ')}`);
+      this._mdnsProcess.on('exit', (code) => {
+        if (code !== 0) {
+          logger.warn(`mDNS: avahi-publish-service exited with code ${code}`);
+        }
+        this._mdnsProcess = null;
+        this._mdnsServiceName = null;
+      });
+
+      this._mdnsServiceName = serviceName;
+      logger.info(`mDNS: advertising BliKVM service "${serviceName}" on port ${serverPort}`);
+
+    } catch (error) {
+      logger.warn(`mDNS: failed to start Avahi service: ${error.message}`);
+    }
   }
 
   _stopMdns() {
-    if (this._mdns) {
+    if (this._mdnsProcess) {
       try {
-        this._mdns.destroy();
-        logger.info('mDNS: service stopped');
+        // Kill the avahi-publish-service process
+        this._mdnsProcess.kill('SIGTERM');
+        logger.info('mDNS: Avahi service stopped');
       } catch (e) {
         logger.warn(`mDNS: stop failed: ${e.message}`);
       }
-      this._mdns = null;
+      this._mdnsProcess = null;
+      this._mdnsServiceName = null;
     }
   }
 
@@ -839,11 +853,11 @@ class HttpServer {
    * Restart mDNS service based on current configuration
    * Called when mDNS settings are changed via API
    */
-  restartMdns() {
+  async restartMdns() {
     this._stopMdns();
     if (isMdnsEnabled()) {
       try {
-        this._startMdns();
+        await this._startMdns();
       } catch (e) {
         logger.warn(`mDNS restart failed: ${e.message}`);
       }
@@ -857,9 +871,9 @@ class HttpServer {
    */
   _setupEventListeners() {
     // Listen for mDNS configuration changes
-    configEvents.onConfigChange('mdns', (eventData) => {
+    configEvents.onConfigChange('mdns', async (eventData) => {
       logger.info(`[server] mDNS config changed by ${eventData.changedBy}, restarting service`);
-      this.restartMdns();
+      await this.restartMdns();
     });
 
     logger.debug('[server] Configuration event listeners initialized');
