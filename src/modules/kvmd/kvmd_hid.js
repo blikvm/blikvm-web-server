@@ -48,7 +48,7 @@ class HID extends Module {
   _init() {
     const { hid } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     this._name = 'HID';
-    this._hidScript = hid.hidScript;
+    this._hidScript = hid.hidScript || './lib/hid/gadget.sh';
     this._enable = hid.enable;
   }
 
