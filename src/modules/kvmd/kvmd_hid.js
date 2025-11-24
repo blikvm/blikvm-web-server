@@ -71,12 +71,12 @@ class HID extends Module {
         }
         const identity = (config.hid && config.hid.identity) || {};
         const shellEscapeSingle = (v) => "'" + String(v).replace(/'/g, "'\\''") + "'";
-        if (identity.idVendor) args.push(`idVendor=${identity.idVendor}`);
-        if (identity.idProduct) args.push(`idProduct=${identity.idProduct}`);
+        if (identity.idVendor) args.push(`idVendor=${shellEscapeSingle(identity.idVendor)}`);
+        if (identity.idProduct) args.push(`idProduct=${shellEscapeSingle(identity.idProduct)}`);
         if (identity.manufacturer) args.push(`manufacturer=${shellEscapeSingle(identity.manufacturer)}`);
         if (identity.product) args.push(`product=${shellEscapeSingle(identity.product)}`);
         executeScriptAtPath(this._hidScript, args)
-          .then( async () => {
+          .then(async () => {
             this._state = ModuleState.RUNNING;
             if (config.hid.enable !== true) {
               await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = true; });
@@ -99,12 +99,12 @@ class HID extends Module {
     return new Promise((resolve, reject) => {
       const args = ['start'];
       executeScriptAtPath(this._hidScript, args)
-        .then( async () => {
-          this._state = ModuleState.RUNNING;
+        .then(async () => {
           const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
           if (config.hid.enable !== true) {
             await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = true; });
           }
+          this._state = ModuleState.RUNNING;
           resolve('hid start success');
         })
         .catch((err) => {
@@ -118,7 +118,7 @@ class HID extends Module {
     return new Promise((resolve, reject) => {
       const args = ['stop'];
       executeScriptAtPath(this._hidScript, args)
-        .then( async () => {
+        .then(async () => {
           this._state = ModuleState.STOPPED;
           const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
           if (config.hid.enable !== false) {
@@ -135,9 +135,15 @@ class HID extends Module {
 
   changeFunction(cmd, func) {
     return new Promise((resolve, reject) => {
-      const args = [ cmd, func];
+      // Validate allowed commands and functions
+      const allowedCmds = ['add', 'delete'];
+      const allowedFuncs = ['mic', 'msd'];
+      if (!allowedCmds.includes(cmd) || !allowedFuncs.includes(func)) {
+        return reject(new Error(`Invalid command or function: ${cmd}, ${func}`));
+      }
+      const args = [cmd, func];
       executeScriptAtPath(this._hidScript, args)
-        .then( async () => {
+        .then(async () => {
           resolve('change function success');
         })
         .catch((err) => {
