@@ -18,7 +18,7 @@ function getHardwareTypeForConfig() {
 const hardware = getHardwareTypeForConfig();
 
 const defaultConfig = {
-    "version": 10,
+    "version": 11,
     "deviceVersion": "BliKVM",
     "log": {
       "console": {
@@ -100,8 +100,7 @@ const defaultConfig = {
       "isRegistered": false
     },
     "hid": {
-      "hidEnable": "./lib/hid/enable-gadget.sh",
-      "hidDisable": "./lib/hid/disable-gadget.sh",
+      "hidScript": "./lib/hid/gadget.sh",
       "keymaps": "./lib/keymaps",
       "enable": true,
       "mouseMode": "dual",

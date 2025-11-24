@@ -30,8 +30,7 @@ const logger = new Logger();
 
 class HID extends Module {
   static _instance = null;
-  _hidEnablePath = null;
-  _hidDisablePath = null;
+  _hidScript = null;
   _hidkeyboard = '/dev/hidg0';
   _hidmouse = '/dev/hidg1';
   _absoluteMode = true;
@@ -49,30 +48,35 @@ class HID extends Module {
   _init() {
     const { hid } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     this._name = 'HID';
-    this._hidEnablePath = hid.hidEnable;
-    this._hidDisablePath = hid.hidDisable;
+    this._hidScript = hid.hidScript || './lib/hid/gadget.sh';
     this._enable = hid.enable;
   }
 
   // mouseMode: dual relative absolute 
   // msdEnable: enable disable
-  startService() {
+  initService() {
     return new Promise((resolve, reject) => {
       if (!isDeviceFile(this._hidkeyboard) && !isDeviceFile(this._hidmouse)) {
-        logger.info(this._hidEnablePath);
+        logger.info(this._hidScript);
         const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
         const args = [
+          'init',
           `mouse_mode=${config.hid.mouseMode}`,
-          `msd=${config.msd.enable ? 'enable' : 'disable'}`,
-          `mic=${config.mic.isRegistered ? 'enable' : 'disable'}`,
         ];
+        if (config.msd && config.msd.enable) {
+          args.push('msd');
+        }
+        if (config.mic && config.mic.isRegistered) {
+          args.push('mic');
+        }
         const identity = (config.hid && config.hid.identity) || {};
-        if (identity.idVendor) args.push(`idVendor=${identity.idVendor}`);
-        if (identity.idProduct) args.push(`idProduct=${identity.idProduct}`);
-        if (identity.manufacturer) args.push(`manufacturer=${identity.manufacturer}`);
-        if (identity.product) args.push(`product=${identity.product}`);
-        executeScriptAtPath(this._hidEnablePath, args)
-          .then( async () => {
+        const shellEscapeSingle = (v) => "'" + String(v).replace(/'/g, "'\\''") + "'";
+        if (identity.idVendor) args.push(`idVendor=${shellEscapeSingle(identity.idVendor)}`);
+        if (identity.idProduct) args.push(`idProduct=${shellEscapeSingle(identity.idProduct)}`);
+        if (identity.manufacturer) args.push(`manufacturer=${shellEscapeSingle(identity.manufacturer)}`);
+        if (identity.product) args.push(`product=${shellEscapeSingle(identity.product)}`);
+        executeScriptAtPath(this._hidScript, args)
+          .then(async () => {
             this._state = ModuleState.RUNNING;
             if (config.hid.enable !== true) {
               await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = true; });
@@ -91,10 +95,30 @@ class HID extends Module {
     });
   }
 
+  startService() {
+    return new Promise((resolve, reject) => {
+      const args = ['start'];
+      executeScriptAtPath(this._hidScript, args)
+        .then(async () => {
+          const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+          if (config.hid.enable !== true) {
+            await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.enable = true; });
+          }
+          this._state = ModuleState.RUNNING;
+          resolve('hid start success');
+        })
+        .catch((err) => {
+          logger.error(`${this._name} error: ${err.message}`);
+          reject(err);
+        });
+    });
+  }
+
   closeService() {
     return new Promise((resolve, reject) => {
-      executeScriptAtPath(this._hidDisablePath, [])
-        .then( async () => {
+      const args = ['stop'];
+      executeScriptAtPath(this._hidScript, args)
+        .then(async () => {
           this._state = ModuleState.STOPPED;
           const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
           if (config.hid.enable !== false) {
@@ -109,39 +133,23 @@ class HID extends Module {
     });
   }
 
-  changeMode(mouseMode) {
+  changeFunction(cmd, func) {
     return new Promise((resolve, reject) => {
-      const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-      if (this._state === ModuleState.RUNNING) {
-        this.closeService()
-          .then(() => {
-            return this.startService();
-          })
-          .then(() => {
-            writeJsonAtomic(CONFIG_PATH, (cfg) => {
-              cfg.hid.mouseMode = mouseMode;
-              cfg.hid.enable = true;
-            });
-            resolve(`${this._name} mode changed successfully, need reboot your kvm`);
-          })
-          .catch((err) => {
-            logger.error(`${this._name} error: ${err.message}`);
-            reject(err);
-          });
-      } else {
-        this.startService()
-          .then(() => {
-            writeJsonAtomic(CONFIG_PATH, (cfg) => {
-              cfg.hid.mouseMode = mouseMode;
-              cfg.hid.enable = true;
-            });
-            resolve(`${this._name} mode changed successfully, need reboot your kvm`);
-          })
-          .catch((err) => {
-            logger.error(`${this._name} error: ${err.message}`);
-            reject(err);
-          });
+      // Validate allowed commands and functions
+      const allowedCmds = ['add', 'delete'];
+      const allowedFuncs = ['mic', 'msd'];
+      if (!allowedCmds.includes(cmd) || !allowedFuncs.includes(func)) {
+        return reject(new Error(`Invalid command or function: ${cmd}, ${func}`));
       }
+      const args = [cmd, func];
+      executeScriptAtPath(this._hidScript, args)
+        .then(async () => {
+          resolve('change function success');
+        })
+        .catch((err) => {
+          logger.error(`${this._name} error: ${err.message}`);
+          reject(err);
+        });
     });
   }
 

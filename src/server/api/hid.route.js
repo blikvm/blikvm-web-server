@@ -169,30 +169,23 @@ function apiEnableHID(req, res, next) {
   }
 }
 
-function apiChangeMode(req, res, next) {
+async function apiChangeMode(req, res, next) {
   try {
     const returnObject = createApiObj();
     const mouseMode = req.body.mouseMode;
-    const hid = new HID();
-    const mouse = new Mouse();
-    const keyboard = new Keyboard();
-    mouse.close();
-    keyboard.close();
-    hid
-      .changeMode(mouseMode)
-      .then(() => {
-        returnObject.code = ApiCode.OK;
-        returnObject.msg = `hid change mode to mouseMode:${mouseMode} successful`;
-        mouse.init();
-        mouse.open();
-        keyboard.open();  
-        res.json(returnObject);
-      })
-      .catch((err) => {
-        returnObject.msg = err.message;
-        returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
-        res.json(returnObject);
-      });
+    if( typeof mouseMode !== 'string' ||
+        !['dual', 'relative', 'absolute'].includes(mouseMode) ){
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+      returnObject.msg = `input invalid mouse mode: ${mouseMode}`;
+      res.json(returnObject);
+      return;
+    }
+    await writeJsonAtomic(CONFIG_PATH, (cfg) => { cfg.hid.mouseMode = mouseMode; });
+    returnObject.code = ApiCode.OK;
+    returnObject.msg = 'change mouse mode success, need to restart kvm';
+    returnObject.data = { mouseMode };
+    res.json(returnObject);
+
   } catch (err) {
     next(err);
   }

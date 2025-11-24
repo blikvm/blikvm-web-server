@@ -127,7 +127,7 @@ function startHid() {
   const { hid } = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
   if (hid.enable === true) {
     const hidHandle = new HID();
-    hidHandle.startService();
+    hidHandle.initService();
   }
 }
 
