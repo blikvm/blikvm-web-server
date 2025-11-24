@@ -64,14 +64,11 @@ async function apiMicSet(req, res, next) {
         mouse.close();
 
         const hidHandle = new HID();
-        await hidHandle.closeService();
-        await hidHandle.startService();        
-
+        let cmd = enable ? 'add' : 'delete';
+        let func = 'mic';
+        await hidHandle.changeFunction(cmd, func);
         keyboard.open();
         mouse.open();
-
-
-
         logger.info(`mic.route: Microphone has been ${enable ? 'enabled' : 'disabled'}`);
         returnObject.data = { mic: enable };
         res.json(returnObject);

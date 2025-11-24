@@ -217,6 +217,14 @@ class AppConfigUpdate {
     return data;
   }
 
+  upgradeV10toV11(data){
+    if(data.hid.hidScript === undefined ){
+      data.hid.hidScript = './lib/hid/gadget.sh';
+    }
+    data.version = 11;
+    return data;
+  }
+  
   upgradeData(data) {
     if (data.version === 1) {
       logger.info('Update from version 1 to version 2...');

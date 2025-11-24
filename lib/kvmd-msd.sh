@@ -28,8 +28,7 @@ ventoy_bin_dir="&=$SCRIPT_DIR/ventoy-1.0.99"
 ventoy_disk_sh="$SCRIPT_DIR/ventoy-1.0.99/Ventoy2Disk.sh"
 iso_dir="/mnt/msd/user"
 mount_dist_dir="/media/blikvm/ventoy/"
-usb_gadget_sh="$SCRIPT_DIR/hid/enable-gadget.sh"
-usb_dis_gadget_sh="$SCRIPT_DIR/hid/disable-gadget.sh"
+usb_gadget_sh="$SCRIPT_DIR/hid/gadget.sh"
 msd_config_dir="/mnt/msd/config/"
 msd_shm_dir="/dev/shm/blikvm/"
 msd_json="msd.json"
@@ -287,67 +286,6 @@ case ${CMD} in
                 echo "mount  $dev_name"p1" fail"
         fi
 
-        # echo "ISO files: ${iso_files[@]}"
-        # if [ ${#iso_files[@]} -ne 0 ]; then
-        #         echo "Making MSD with the following ISO files:"
-        #         temp_file_list=$(mktemp)
-        #         for file_name in "${iso_files[@]}"; do
-        #         if [ "$file_name" != "*" ]; then
-        #                 src_file="$iso_dir/$file_name"
-        #                 dest_file="$mount_dist_dir${file_name##*/}"
-        #                 if [[ -f "$dest_file" && -f "$src_file" ]]; then
-        #                 echo "exist update file: $file_name, rm it"
-        #                 rm -f "$dest_file"
-        #                 sync
-        #                 fi
-        #                 echo "$src_file" >> "$temp_file_list"
-        #         fi
-        #         done
-
-        #         if [ -s "$temp_file_list" ]; then
-        #         rsync -a --progress --no-relative --files-from="$temp_file_list" / "$mount_dist_dir"
-        #         if [ $? -ne 0 ]; then
-        #                 echo "rsync failed"
-        #         else
-        #                 echo "rsync success!"
-        #         fi
-        #         sync
-        #         else
-        #         echo "No valid files to copy"
-        #         fi
-
-        #         rm -f "$temp_file_list"
-        # else
-        #         if [ ! -d  $iso_dir ]
-        #         then
-        #                 mkdir -p  $iso_dir
-        #                 exit 1
-        #         fi
-        #         traverse_dir $iso_dir
-        #         for name in ${iso_file_name[@]}
-        #         do
-        #                 #echo ${name##*/}
-        #                 echo $mount_dist_dir${name##*/}
-        #                 if [ -f $mount_dist_dir${name##*/} ] || [ -d $mount_dist_dir${name##*/} ]
-        #                 then
-        #                         echo "exist update file: ${name},rm it "
-        #                         rm -rf $mount_dist_dir${name##*/}
-        #                         sync
-        #                 fi
-        #                 sleep 1
-        #                 echo "${name} again!"
-        #                 #cp -rf "${name}" "$mount_dist_dir";
-        #                 rsync -a --progress "${name}" "$mount_dist_dir"
-        #                 if [ $? -ne 0 ]
-        #                 then
-        #                         echo "default cp failed"
-        #                 else
-        #                         echo "default cp ${name} sucess!"
-        #                 fi
-        #                 sync
-        #         done
-        # fi
-
         if [ "$TYPE" = "ventoy" ] 
         then
                 umount -f $dev_name"p1"
@@ -367,8 +305,7 @@ case ${CMD} in
         then
                 mv $MSD_NAME".img_bak" $MSD_NAME".img"
         fi
-        bash $usb_dis_gadget_sh
-        bash $usb_gadget_sh
+        bash $usb_gadget_sh add msd
         update_json msd_status connected
         ;;
 
@@ -379,8 +316,7 @@ case ${CMD} in
                 echo "disconnect file exist"
                 mv $MSD_NAME".img" $MSD_NAME".img_bak"
         fi
-        bash $usb_dis_gadget_sh
-        bash $usb_gadget_sh
+        bash $usb_gadget_sh delete msd
         update_json msd_status not_connected
         ;;
 
@@ -389,8 +325,7 @@ case ${CMD} in
         then
                 rm -f $ventoy_dir/*
         fi
-        bash $usb_dis_gadget_sh
-        bash $usb_gadget_sh
+        bash $usb_gadget_sh delete msd
         update_json  msd_img_created not_created
         update_json msd_status not_connected
         ;;
