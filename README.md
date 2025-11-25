@@ -115,6 +115,19 @@ npm run clean
 npm run build
 ```
 
+## 7. How to test
+First you need to change app.json `auth = false`, and run server `npm run dev`
+```
+# test all test case
+npm run test
+
+# test one single file
+npx jest test/xxx.test.js
+
+# test all test case and test report
+npm run test -- --reporters=default --reporters=jest-junit
+```
+
 ## License
 Copyright (C) 2018-2024 by blicube info@blicube.com
 

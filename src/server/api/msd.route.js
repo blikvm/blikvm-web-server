@@ -32,8 +32,7 @@ import { getDiskSpace } from '../../common/tool.js';
 const logger = new Logger();
 /**
  * /api/msd/state
- * /api/msd/upload?image=test.iso
- * /api/msd/upload?image=http://example.com/test.iso
+ * /api/msd/upload
  * /api/msd/create
  * {"type":"ventoy","images":["test.iso"],"name":"ventoy","size":"4G"}
  * /api/msd/connect?action=true

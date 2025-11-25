@@ -76,7 +76,7 @@ class MSD {
     try {
       const returnObject = createApiObj();
 
-  const progress = progressStream({ length: '0' }); // Note: length is set to '0' here
+      const progress = progressStream({ length: '0' }); // Note: length is set to '0' here
       req.pipe(progress);
       progress.headers = req.headers;
 
@@ -98,6 +98,14 @@ class MSD {
           logger.error(`${this._name} error: ${err.message}`);
           next(err);
         } else {
+          const uploadedFile = progress.file || req.file;
+          if (!uploadedFile) {
+            logger.warn(`${this._name} upload rejected: no file provided`);
+            returnObject.msg = 'File upload error: no file provided';
+            returnObject.code = ApiCode.INVALID_INPUT_PARAM;
+            res.status(400).json(returnObject);
+            return;
+          }
           // const uploadedFileName = req.file.originalname;
           returnObject.msg = 'File uploaded successfully';
           returnObject.code = ApiCode.OK;
@@ -113,38 +121,38 @@ class MSD {
   _checkCreateParams(req) {
     const body = req.body || {};
 
-  // 1) Basic normalization and trimming
+    // 1) Basic normalization and trimming
     const type = String(body.type || '').trim();
     const name = String(body.name || '').trim();
     const sizeRaw = String(body.size || '').trim();
 
-  // 2) Type whitelist
+    // 2) Type whitelist
     if (!(type === MSDImageType.ventoy || type === MSDImageType.common)) {
-  logger.error(`MSD create params invalid: unsupported type "${type}" (allowed: ${Object.values(MSDImageType).join(', ')})`);
+      logger.error(`MSD create params invalid: unsupported type "${type}" (allowed: ${Object.values(MSDImageType).join(', ')})`);
       return false;
     }
 
-  // 3) Name validation: only letters/digits/._- are allowed, length 1–32
+    // 3) Name validation: only letters/digits/._- are allowed, length 1–32
     if (!/^[A-Za-z0-9._-]{1,32}$/.test(name)) {
-  logger.error(`MSD create params invalid: bad name "${name}" (allowed: [A-Za-z0-9._-], length 1-32)`);
+      logger.error(`MSD create params invalid: bad name "${name}" (allowed: [A-Za-z0-9._-], length 1-32)`);
       return false;
     }
 
-  // 4) Size validation: integer GB, 1 ~ 1024, no unit suffix is allowed
+    // 4) Size validation: integer GB, 1 ~ 1024, no unit suffix is allowed
     const m = sizeRaw.match(/^(\d{1,4})$/);
     if (!m) {
-  logger.error(`MSD create params invalid: bad size "${sizeRaw}" (expected: integer GB between 1 and 1024, no unit suffix)`);
+      logger.error(`MSD create params invalid: bad size "${sizeRaw}" (expected: integer GB between 1 and 1024, no unit suffix)`);
       return false;
     }
     const gb = parseInt(m[1], 10);
 
-  // Allowed range: 1 GB ~ 1024 GB
+    // Allowed range: 1 GB ~ 1024 GB
     if (Number.isNaN(gb) || gb < 1 || gb > 1024) {
-  logger.error(`MSD create params invalid: size out of range -> ${gb} GB (allowed: 1 ~ 1024 GB)`);
+      logger.error(`MSD create params invalid: size out of range -> ${gb} GB (allowed: 1 ~ 1024 GB)`);
       return false;
     }
 
-  // 5) Canonicalization (rewrite in-place without changing other code paths)
+    // 5) Canonicalization (rewrite in-place without changing other code paths)
     req.body.type = type;
     req.body.name = name;
     req.body.size = String(gb); // Normalize to plain GB integer without any unit
@@ -153,7 +161,7 @@ class MSD {
   }
 
   _parseProgress(data) {
-  // Parse command output and extract copy progress percentage
+    // Parse command output and extract copy progress percentage
     const match = data.match(/(\d+)%/);
     return match ? parseInt(match[1], 10) : null;
   }
@@ -192,18 +200,18 @@ class MSD {
         msd_img_created: "not_created",
         file_mount_flag: "false",
       };
-  
+
       const dirPath = path.dirname(stateFilePath);
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
       }
-  
+
       fs.writeFileSync(stateFilePath, JSON.stringify(initialState, null, 2), 'utf8');
     }
-  
+
     const state = JSON.parse(fs.readFileSync(stateFilePath, 'utf8'));
     return {
-      ...state,   
+      ...state,
       tusPort: msd.tusPort
     };
   }
@@ -287,23 +295,23 @@ class MSD {
     if (state.file_mount_flag === 'false' && action === 'unmount') {
       returnObject.msg = "Already unmounted, you can't exec unmount command";
       returnObject.code = ApiCode.INVALID_INPUT_PARAM;
-      returnObject.data = state;  
+      returnObject.data = state;
       return res.json(returnObject);
     }
 
     const { msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-  
+
     try {
       if (action === 'mount') {
-  
+
         const cmd = `bash ${msd.shell} -c mount_image`;
-        await executeCMD(cmd); 
+        await executeCMD(cmd);
         logger.info('mount MSD');
         returnObject.msg = `${cmd} ok`;
         returnObject.code = ApiCode.OK;
         returnObject.data = this.getMSDState();
         return res.json(returnObject);
-        
+
       } else {
         const cmd = `bash ${msd.shell} -c unmount_image`;
         await executeCMD(cmd);  // 使用 await 确保执行完成
@@ -318,20 +326,20 @@ class MSD {
     }
   }
 
-    async connectMSD(req, res, next) {
+  async connectMSD(req, res, next) {
     const returnObject = createApiObj();
     const state = this.getMSDState();
-  
+
     if (state.msd_img_created !== 'created') {
       returnObject.msg = "usb drive not created, you can't exec connect command";
       returnObject.code = ApiCode.OK;
       returnObject.data = state;
       return res.json(returnObject);
     }
-  
+
     const action = req.query.action;
     const { msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-  
+
     try {
       if (action === 'true') {
         if (state.msd_status === 'connected') {
@@ -340,16 +348,16 @@ class MSD {
           returnObject.data = state;
           return res.json(returnObject);
         }
-  
+
         const cmd = `bash ${msd.shell} -c conn`;
-        await executeCMD(cmd); 
-  
+        await executeCMD(cmd);
+
         logger.info('Connected MSD');
         returnObject.msg = `${cmd} ok`;
         returnObject.code = ApiCode.OK;
         returnObject.data = this.getMSDState();
         return res.json(returnObject);
-        
+
       } else {
         if (state.msd_status === 'not_connected') {
           returnObject.msg = 'usb drive already disconnected from host';
@@ -357,10 +365,10 @@ class MSD {
           returnObject.data = state;
           return res.json(returnObject);
         }
-  
+
         const cmd = `bash ${msd.shell} -c disconn`;
         await executeCMD(cmd);  // 使用 await 确保执行完成
-  
+
         logger.info('Disconnected MSD');
         returnObject.msg = `${cmd} ok`;
         returnObject.code = ApiCode.OK;
@@ -371,7 +379,7 @@ class MSD {
       next(err);
     }
   }
-  
+
 
   async removeMSD(req, res, next) {
     const returnObject = createApiObj();
@@ -386,13 +394,13 @@ class MSD {
     const { msd } = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
     const cmd = `bash ${msd.shell} -c clean`;
     logger.info(`Remove MSD: ${cmd}`);
-    try{
+    try {
       await executeCMD(cmd);
       returnObject.msg = 'remove msd image ok';
       returnObject.code = ApiCode.OK;
       returnObject.data = this.getMSDState();
       res.json(returnObject);
-    }catch (err) {
+    } catch (err) {
       next(err);
     }
   }
