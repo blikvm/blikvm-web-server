@@ -51,6 +51,5 @@ describe('MSD API', () => {
     const stats = fs.statSync(TARGET_UPLOADED_FILE);
     expect(stats.size).toBeGreaterThan(0);
 
-    fs.rmSync(TARGET_UPLOADED_FILE);
   });
 });
