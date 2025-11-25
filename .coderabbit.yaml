@@ -1,13 +1,5 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # CodeRabbit configuration for web_server (Node.js + Express)
-version: 1
-
-project:
-  name: blikvm-web-server
-  language: javascript
-  runtime: node
-  frameworks:
-    - express
-  description: Backend API & device control (USB gadget, ATX, HID). Emphasis on non-blocking I/O, robust error handling, and security hygiene.
 
 reviews:
   path_filters:
@@ -42,22 +34,3 @@ reviews:
   summarize_findings: true
   suggestions: true
   security_scan: true
-
-style:
-  code_blocks: true
-  line_length: 120
-  markdown: true
-
-commits:
-  conventional: true
-
-checks:
-  - name: lint
-    required: false
-    description: ESLint passes for changed backend files.
-  - name: unit-tests
-    required: false
-    description: Added/changed logic covered by tests (if present).
-  - name: build
-    required: false
-    description: Server can start (e.g., node src/server/index.js).
