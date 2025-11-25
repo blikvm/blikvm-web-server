@@ -118,13 +118,13 @@ npm run build
 ## 7. How to test
 First you need to change app.json `auth = false`, and run server `npm run dev`
 ```
-# test all test case
+# test all test cases
 npm run test
 
 # test one single file
 npx jest test/xxx.test.js
 
-# test all test case and test report
+# test all test cases and test report
 npm run test -- --reporters=default --reporters=jest-junit
 ```
 
