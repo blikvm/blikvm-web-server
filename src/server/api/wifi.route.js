@@ -22,33 +22,15 @@ import { exec } from 'child_process';
 import util from 'util';
 import { createApiObj, ApiCode } from '../../common/api.js';
 import { changetoRWSystem, changetoROSystem, sleep, getSystemType } from '../../common/tool.js';
+import si from 'systeminformation';
 
 const execAsync = util.promisify(exec);
-
-function parseScanOutput(raw) {
-  const lines = raw.split('\n').filter(l => l.trim());
-  const results = [];
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    const parts = line.trim().split(/\s{2,}/).filter(Boolean);
-    if (parts.length < 4) continue;
-    const ssid = parts[0];
-    const signal = parts[parts.length - 2];
-    const security = parts[parts.length - 1];
-    results.push({ ssid, signal, security });
-  }
-  return results;
-}
 
 async function scanWifi(req, res, next) {
   const returnObject = createApiObj();
   try {
-    await execAsync('nmcli device wifi rescan');
-    const { stdout } = await execAsync('nmcli -f SSID,CHAN,SIGNAL,SECURITY device wifi list');
-    // 获取当前激活的 Wi-Fi SSID（可能为空）
-    const activeInfo = await getActiveWifiInternal();
-    const list = parseScanOutput(stdout).map(n => ({ ...n, active: activeInfo && activeInfo.ssid === n.ssid }));
-    returnObject.data = { networks: list, active: activeInfo || null };
+    const networks = await si.wifiNetworks();
+    returnObject.data = { networks };
     returnObject.code = ApiCode.OK;
     res.json(returnObject);
   } catch (error) {
@@ -58,34 +40,12 @@ async function scanWifi(req, res, next) {
   }
 }
 
-// 内部工具：解析当前激活 Wi-Fi
-async function getActiveWifiInternal() {
-  try {
-    // 使用 terse 输出：ACTIVE:SSID:BSSID:CHAN:SIGNAL:SECURITY
-    const { stdout } = await execAsync('nmcli -t -f ACTIVE,SSID,BSSID,CHAN,SIGNAL,SECURITY device wifi');
-    const line = stdout.split('\n').find(l => l.startsWith('yes:'));
-    if (!line) return null;
-    const parts = line.split(':');
-    // yes:<ssid>:<bssid>:<chan>:<signal>:<security>
-    return {
-      ssid: parts[1] || '',
-      bssid: parts[2] || '',
-      chan: parts[3] || '',
-      signal: parts[4] || '',
-      security: parts[5] || ''
-    };
-  } catch {
-    return null;
-  }
-}
-
 async function wifiStatus(req, res, next) {
   const returnObject = createApiObj();
   try {
-    const active = await getActiveWifiInternal();
+    const connections = await si.wifiConnections();
     returnObject.data = {
-      connected: !!active,
-      active
+      connections
     };
     returnObject.code = ApiCode.OK;
     res.json(returnObject);
@@ -132,7 +92,14 @@ async function connectWifi(req, res, next) {
     const escapedPwd = (password || '').replace(/"/g, '\\"');
     const cmd = password ? `nmcli device wifi connect "${escapedSsid}" password "${escapedPwd}"` : `nmcli device wifi connect "${escapedSsid}"`;
     await execAsync(cmd);
-    returnObject.data = { connected: true };
+    // 连接成功后，获取当前 Wi-Fi 连接状态
+    let connections = [];
+    try {
+      connections = await si.wifiConnections();
+      console.log("wifi connections:",connections);
+    } catch {}
+    const isConnected = Array.isArray(connections) && connections.length > 0;
+    returnObject.data = { connected: isConnected, connections };
     returnObject.code = ApiCode.OK;
   } catch (error) {
     returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
@@ -169,13 +136,18 @@ async function disconnectWifi(req, res, next) {
         await execAsync(cmd);
       } catch { }
     }
+    let connections = [];
+    try {
+      connections = await si.wifiConnections();
+      console.log("wifi connections:",connections);
+    } catch {}
+    const isConnected = Array.isArray(connections) && connections.length > 0;
+    returnObject.data = { connected: isConnected };
     returnObject.code = ApiCode.OK;
     returnObject.msg = 'disconnected';
-    returnObject.data = { rwChanged };
   } catch (error) {
     returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
     returnObject.msg = error.message;
-    returnObject.data = { rwChanged };
   } finally {
     // 仅当最初是只读时才恢复为只读
     try {
@@ -184,8 +156,6 @@ async function disconnectWifi(req, res, next) {
         try { roRecovered = changetoROSystem(); } catch { }
       }
     } catch { }
-    if (!returnObject.data) returnObject.data = {}; // ensure object
-    returnObject.data.roRecovered = roRecovered;
     if (!res.headersSent) res.json(returnObject);
   }
 }
