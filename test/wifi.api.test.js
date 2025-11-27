@@ -34,7 +34,7 @@ describe('WiFi API', () => {
     const { status, json } = await api('POST', '/api/wifi/connect', {});
 
     expect(status).toBe(200);
-    expect(json?.code).toBe(ApiCode.BAD_REQUEST);
+    expect(json?.code).toBe(ApiCode.INVALID_INPUT_PARAM);
     expect(json?.data?.connected).toBe(false);
   });
 
