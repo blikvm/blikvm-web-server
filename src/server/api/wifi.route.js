@@ -18,37 +18,25 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
 *****************************************************************************/
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import util from 'util';
 import { createApiObj, ApiCode } from '../../common/api.js';
 import { changetoRWSystem, changetoROSystem, sleep, getSystemType } from '../../common/tool.js';
+import si from 'systeminformation';
+import Logger from '../../log/logger.js';
+
+
+const logger = new Logger();
+
 
 const execAsync = util.promisify(exec);
-
-function parseScanOutput(raw) {
-  const lines = raw.split('\n').filter(l => l.trim());
-  const results = [];
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    const parts = line.trim().split(/\s{2,}/).filter(Boolean);
-    if (parts.length < 4) continue;
-    const ssid = parts[0];
-    const signal = parts[parts.length - 2];
-    const security = parts[parts.length - 1];
-    results.push({ ssid, signal, security });
-  }
-  return results;
-}
+const execFileAsync = util.promisify(execFile);
 
 async function scanWifi(req, res, next) {
   const returnObject = createApiObj();
   try {
-    await execAsync('nmcli device wifi rescan');
-    const { stdout } = await execAsync('nmcli -f SSID,CHAN,SIGNAL,SECURITY device wifi list');
-    // 获取当前激活的 Wi-Fi SSID（可能为空）
-    const activeInfo = await getActiveWifiInternal();
-    const list = parseScanOutput(stdout).map(n => ({ ...n, active: activeInfo && activeInfo.ssid === n.ssid }));
-    returnObject.data = { networks: list, active: activeInfo || null };
+    const networks = await si.wifiNetworks();
+    returnObject.data = { networks };
     returnObject.code = ApiCode.OK;
     res.json(returnObject);
   } catch (error) {
@@ -58,34 +46,12 @@ async function scanWifi(req, res, next) {
   }
 }
 
-// 内部工具：解析当前激活 Wi-Fi
-async function getActiveWifiInternal() {
-  try {
-    // 使用 terse 输出：ACTIVE:SSID:BSSID:CHAN:SIGNAL:SECURITY
-    const { stdout } = await execAsync('nmcli -t -f ACTIVE,SSID,BSSID,CHAN,SIGNAL,SECURITY device wifi');
-    const line = stdout.split('\n').find(l => l.startsWith('yes:'));
-    if (!line) return null;
-    const parts = line.split(':');
-    // yes:<ssid>:<bssid>:<chan>:<signal>:<security>
-    return {
-      ssid: parts[1] || '',
-      bssid: parts[2] || '',
-      chan: parts[3] || '',
-      signal: parts[4] || '',
-      security: parts[5] || ''
-    };
-  } catch {
-    return null;
-  }
-}
-
 async function wifiStatus(req, res, next) {
   const returnObject = createApiObj();
   try {
-    const active = await getActiveWifiInternal();
+    const connections = await si.wifiConnections();
     returnObject.data = {
-      connected: !!active,
-      active
+      connections
     };
     returnObject.code = ApiCode.OK;
     res.json(returnObject);
@@ -98,94 +64,96 @@ async function wifiStatus(req, res, next) {
 
 async function connectWifi(req, res, next) {
   const returnObject = createApiObj();
-  let rwChanged = false;
-  let roRecovered = false;
-  let prepPerformed = false;
-  let originalState = 'error';
+  let initialSystemType;
+  let switchedToRW = false;
   try {
+    initialSystemType = getSystemType();
     const { ssid, password } = req.body || {};
 
-    // 仅当根分区为只读时才切换为可写
-    try { originalState = getSystemType(); } catch { }
-    if (originalState === 'ro') {
-      try { rwChanged = changetoRWSystem(); } catch { }
+    if (initialSystemType === 'ro') {
+      changetoRWSystem();
+      switchedToRW = true;
     }
 
     if (!ssid) {
-      returnObject.code = ApiCode.BAD_REQUEST;
+      returnObject.code = ApiCode.INVALID_INPUT_PARAM;
       returnObject.msg = 'ssid required';
       returnObject.data = { connected: false };
-      return; // 在 finally 中统一输出
+      return;
     }
 
-    // 每次调用都做一次权限 + NM 重启（只读系统会被恢复）
     if (process.getuid && process.getuid() === 0) {
-      try {
-        await execAsync('chmod 777 -R /etc/NetworkManager/system-connections || true');
-        await execAsync('systemctl restart NetworkManager');
-        await sleep(1500); // 等待 NM 重新加载
-        prepPerformed = true;
-      } catch { }
+      await execAsync('chmod 777 -R /etc/NetworkManager/system-connections || true');
+      await execAsync('systemctl restart NetworkManager');
+      await sleep(1500);
     }
 
-    const escapedSsid = ssid.replace(/"/g, '\\"');
-    const escapedPwd = (password || '').replace(/"/g, '\\"');
-    const cmd = password ? `nmcli device wifi connect "${escapedSsid}" password "${escapedPwd}"` : `nmcli device wifi connect "${escapedSsid}"`;
-    await execAsync(cmd);
-    returnObject.data = { connected: true };
+    const args = password
+      ? ['device', 'wifi', 'connect', ssid, 'password', password]
+      : ['device', 'wifi', 'connect', ssid];
+    await execFileAsync('nmcli', args);
+
+    let connections = await si.wifiConnections();
+    const isConnected = Array.isArray(connections) && connections.length > 0;
+    returnObject.data = { connected: isConnected, connections };
     returnObject.code = ApiCode.OK;
   } catch (error) {
     returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
     returnObject.msg = error?.message || '';
-    // 明确返回连接失败
     returnObject.data = { connected: false };
   } finally {
-    // 仅当最初是只读时才恢复为只读
-    if (originalState === 'ro') {
-      try { roRecovered = changetoROSystem(); } catch { }
+    if (switchedToRW) {
+      try { changetoROSystem(); } catch (err) {
+        logger.error('Failed to restore read-only system state:', err);
+      }
     }
-    // 返回体仅包含连接是否成功
+
     if (!res.headersSent) res.json(returnObject);
   }
 }
 
 async function disconnectWifi(req, res, next) {
   const returnObject = createApiObj();
-  let rwChanged = false;
-  let roRecovered = false;
+  let initialSystemType;
+  let switchedToRW = false;
   try {
-    let originalState = 'error';
-    try { originalState = getSystemType(); } catch { }
-    if (originalState === 'ro') {
-      try { rwChanged = changetoRWSystem(); } catch { }
+    initialSystemType = getSystemType();
+    if (initialSystemType === 'ro') {
+      changetoRWSystem();
+      switchedToRW = true;
+    }
+    let wifiConnections = await si.wifiConnections();
+    let isConnected = Array.isArray(wifiConnections) && wifiConnections.length > 0;
+    if (!isConnected) {
+      returnObject.code = ApiCode.OK;
+      returnObject.msg = 'No active Wi-Fi connection to disconnect';
+      returnObject.data = { connected: false };
+      return;
     }
     const { ssid } = req.body || {};
     if (ssid) {
-      const escaped = ssid.replace(/"/g, '\\"');
-      try { await execAsync(`nmcli connection down id "${escaped}"`); } catch { }
+      await execFileAsync('nmcli', ['connection', 'down', 'id', ssid]);
     } else {
-      try {
-        const cmd = "nmcli connection down id $(nmcli -t -f NAME,TYPE connection show --active | awk -F: '" + '$2=="wifi" {print $1; exit}' + "')";
-        await execAsync(cmd);
-      } catch { }
+      logger.info('No SSID provided, disconnecting current Wi-Fi connection');
+      const cmd = "nmcli connection down id $(nmcli -t -f NAME,TYPE connection show --active | awk -F: '" + '$2=="wifi" {print $1; exit}' + "')";
+      await execAsync(cmd);
+      logger.info('Disconnected current Wi-Fi connection');
     }
+    wifiConnections = await si.wifiConnections();
+    isConnected = Array.isArray(wifiConnections) && wifiConnections.length > 0;
+    returnObject.data = { connected: isConnected };
     returnObject.code = ApiCode.OK;
-    returnObject.msg = 'disconnected';
-    returnObject.data = { rwChanged };
+    returnObject.msg = `disconnected from ${ssid || 'current Wi-Fi'} `;
   } catch (error) {
+    logger.error('Error disconnecting WiFi:', error);
     returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
-    returnObject.msg = error.message;
-    returnObject.data = { rwChanged };
+    returnObject.msg = error.message || 'Error disconnecting WiFi';
   } finally {
-    // 仅当最初是只读时才恢复为只读
-    try {
-      const st = getSystemType();
-      if (st === 'ro') {
-        try { roRecovered = changetoROSystem(); } catch { }
+    if (switchedToRW) {
+      try { changetoROSystem(); } catch (err) {
+        logger.error('Failed to restore read-only system state:', err);
       }
-    } catch { }
-    if (!returnObject.data) returnObject.data = {}; // ensure object
-    returnObject.data.roRecovered = roRecovered;
+    }
     if (!res.headersSent) res.json(returnObject);
   }
 }
