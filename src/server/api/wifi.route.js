@@ -23,7 +23,10 @@ import util from 'util';
 import { createApiObj, ApiCode } from '../../common/api.js';
 import { changetoRWSystem, changetoROSystem, sleep, getSystemType } from '../../common/tool.js';
 import si from 'systeminformation';
-import { error, log } from 'console';
+import Logger from '../../log/logger.js';
+
+const logger = new Logger();
+
 
 const execAsync = util.promisify(exec);
 
@@ -143,9 +146,8 @@ async function disconnectWifi(req, res, next) {
     } catch (error) {
       logger.error('Error fetching wifi connections after disconnect:', error);
       returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
-      returnObject.msg = error.message;
+      returnObject.msg = error?.message || '';
       returnObject.data = { connected: false };
-      return;
     }
     const isConnected = Array.isArray(connections) && connections.length > 0;
     returnObject.data = { connected: isConnected };
