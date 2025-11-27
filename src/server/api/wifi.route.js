@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
 *****************************************************************************/
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import util from 'util';
 import { createApiObj, ApiCode } from '../../common/api.js';
 import { changetoRWSystem, changetoROSystem, sleep, getSystemType } from '../../common/tool.js';
@@ -30,6 +30,7 @@ const logger = new Logger();
 
 
 const execAsync = util.promisify(exec);
+const execFileAsync = util.promisify(execFile);
 
 async function scanWifi(req, res, next) {
   const returnObject = createApiObj();
@@ -63,11 +64,15 @@ async function wifiStatus(req, res, next) {
 
 async function connectWifi(req, res, next) {
   const returnObject = createApiObj();
+  let initialSystemType;
+  let switchedToRW = false;
   try {
+    initialSystemType = getSystemType();
     const { ssid, password } = req.body || {};
 
-    if (getSystemType() === 'ro') {
+    if (initialSystemType === 'ro') {
       changetoRWSystem();
+      switchedToRW = true;
     }
 
     if (!ssid) {
@@ -83,10 +88,10 @@ async function connectWifi(req, res, next) {
       await sleep(1500);
     }
 
-    const escapedSsid = ssid.replace(/"/g, '\\"');
-    const escapedPwd = (password || '').replace(/"/g, '\\"');
-    const cmd = password ? `nmcli device wifi connect "${escapedSsid}" password "${escapedPwd}"` : `nmcli device wifi connect "${escapedSsid}"`;
-    await execAsync(cmd);
+    const args = password
+      ? ['device', 'wifi', 'connect', ssid, 'password', password]
+      : ['device', 'wifi', 'connect', ssid];
+    await execFileAsync('nmcli', args);
 
     let connections = await si.wifiConnections();
     const isConnected = Array.isArray(connections) && connections.length > 0;
@@ -97,7 +102,7 @@ async function connectWifi(req, res, next) {
     returnObject.msg = error?.message || '';
     returnObject.data = { connected: false };
   } finally {
-    if (getSystemType() === 'rw') {
+    if (switchedToRW) {
       try { changetoROSystem(); } catch (err) {
         logger.error('Failed to restore read-only system state:', err);
       }
@@ -109,9 +114,13 @@ async function connectWifi(req, res, next) {
 
 async function disconnectWifi(req, res, next) {
   const returnObject = createApiObj();
+  let initialSystemType;
+  let switchedToRW = false;
   try {
-    if (getSystemType() === 'ro') {
+    initialSystemType = getSystemType();
+    if (initialSystemType === 'ro') {
       changetoRWSystem();
+      switchedToRW = true;
     }
     let wifiConnections = await si.wifiConnections();
     let isConnected = Array.isArray(wifiConnections) && wifiConnections.length > 0;
@@ -123,8 +132,7 @@ async function disconnectWifi(req, res, next) {
     }
     const { ssid } = req.body || {};
     if (ssid) {
-      const escaped = ssid.replace(/"/g, '\\"');
-      await execAsync(`nmcli connection down id "${escaped}"`);
+      await execFileAsync('nmcli', ['connection', 'down', 'id', ssid]);
     } else {
       logger.info('No SSID provided, disconnecting current Wi-Fi connection');
       const cmd = "nmcli connection down id $(nmcli -t -f NAME,TYPE connection show --active | awk -F: '" + '$2=="wifi" {print $1; exit}' + "')";
@@ -141,8 +149,8 @@ async function disconnectWifi(req, res, next) {
     returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
     returnObject.msg = error.message || 'Error disconnecting WiFi';
   } finally {
-    if (getSystemType() === 'rw') {
-      try { changetoROSystem(); } catch (err) { 
+    if (switchedToRW) {
+      try { changetoROSystem(); } catch (err) {
         logger.error('Failed to restore read-only system state:', err);
       }
     }
