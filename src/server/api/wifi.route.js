@@ -141,18 +141,23 @@ async function disconnectWifi(req, res, next) {
       } catch { }
     }
     let connections = [];
+    let connectionCheckFailed = false;
     try {
       connections = await si.wifiConnections();
     } catch (error) {
       logger.error('Error fetching wifi connections after disconnect:', error);
-      returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
-      returnObject.msg = error?.message || '';
-      returnObject.data = { connected: false };
+      connectionCheckFailed = true;
     }
-    const isConnected = Array.isArray(connections) && connections.length > 0;
-    returnObject.data = { connected: isConnected };
-    returnObject.code = ApiCode.OK;
-    returnObject.msg = 'disconnected';
+    if (connectionCheckFailed) {
+      returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
+      returnObject.msg = 'Failed to verify disconnection status';
+      returnObject.data = { connected: false };
+    } else {
+      const isConnected = Array.isArray(connections) && connections.length > 0;
+      returnObject.data = { connected: isConnected };
+      returnObject.code = ApiCode.OK;
+      returnObject.msg = 'disconnected wifi ok';
+    }
   } catch (error) {
     returnObject.code = ApiCode.INTERNAL_SERVER_ERROR;
     returnObject.msg = error.message;
