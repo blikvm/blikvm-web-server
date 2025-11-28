@@ -66,8 +66,8 @@ export function validateResponseBody(schema) {
       const valid = validate(body);
       
       if (!valid) {
-        console.warn('Response validation failed:', validate.errors);
-        console.warn('Response body:', JSON.stringify(body, null, 2));
+        logger.warn('Response validation failed:', validate.errors);
+        logger.warn('Response body:', JSON.stringify(body, null, 2));
       }
       
       return originalJson.call(this, body);
