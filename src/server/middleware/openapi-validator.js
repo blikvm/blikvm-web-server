@@ -6,9 +6,12 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { createApiObj, ApiCode } from '../../common/api.js';
+import Logger from '../../log/logger.js';
 
 const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);
+
+const logger = new Logger();
 
 /**
  * Create validation middleware for request body
@@ -78,7 +81,7 @@ export function openApiErrorHandler(err, req, res, next) {
     return next(err);
   }
 
-  console.error('OpenAPI v1 Error:', err);
+  logger.error(`OpenAPI v1 Error: ${err.message || err}`);
 
   const response = {
     error: err.message || 'Internal server error',
