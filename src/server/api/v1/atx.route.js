@@ -9,8 +9,15 @@ import { writeJsonAtomic } from '../../../common/atomic-file.js';
 import { CONFIG_PATH, UTF8 } from '../../../common/constants.js';
 import { createSocket } from 'unix-dgram';
 
-// Read static config once at module load
-const SOCKET_PATH = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8)).atx?.controlSockFilePath;
+// Read static config once at module load with error handling (CodeRabbit feedback)
+let SOCKET_PATH;
+try {
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+  SOCKET_PATH = config.atx?.controlSockFilePath;
+} catch (error) {
+  console.error('Failed to parse ATX config at module load:', error);
+  SOCKET_PATH = '/var/blikvm/atx.sock'; // Fallback to default path
+}
 
 // Reuse ATX instance at module level (CodeRabbit feedback)
 const atxInstance = new ATX();
@@ -43,9 +50,14 @@ async function getUserConfig() {
  * @returns {Object} v1 formatted response
  */
 function formatATXResponse(state) {
+  // More resilient to null/undefined states (CodeRabbit feedback)
+  if (!state || typeof state !== 'object') {
+    return { enabled: true, power: 'unknown' };
+  }
+  
   const enabled = state.isActive ?? true;
-  const power = (state?.ledPwr === true) ? 'on' : 
-                (state?.ledPwr === false) ? 'off' : 
+  const power = (state.ledPwr === true) ? 'on' : 
+                (state.ledPwr === false) ? 'off' : 
                 'unknown';
   return { enabled, power };
 }
@@ -90,6 +102,14 @@ export async function setATXPower(req, res, next) {
     };
     
     const command = actionMap[action];
+    
+    // Guard against unsupported action values (CodeRabbit feedback)
+    if (!command) {
+      return res.status(400).json({
+        error: 'Invalid action',
+        message: `Unsupported action "${action}". Valid actions: ${Object.keys(actionMap).join(', ')}`
+      });
+    }
     
     // Execute power command using static socket path
     await writeToSocket(command.cmd, SOCKET_PATH);

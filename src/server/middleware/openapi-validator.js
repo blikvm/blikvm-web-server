@@ -86,7 +86,8 @@ export function openApiErrorHandler(err, req, res, next) {
     return next(err);
   }
 
-  logger.error(`OpenAPI v1 Error: ${err.message || err}`);
+  // Log full error object for better debugging (CodeRabbit feedback)
+  logger.error('OpenAPI v1 Error:', err);
 
   // Consistent v1 error format
   const response = {
