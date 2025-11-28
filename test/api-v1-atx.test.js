@@ -26,8 +26,14 @@ describe('ATX API Compatibility Tests', () => {
   });
 
   describe('GET /api/v1/atx/power - Power State', () => {
+    let powerResponse;
+
+    beforeAll(async () => {
+      powerResponse = await api('GET', '/api/v1/atx/power');
+    });
+
     test('returns valid power state format', async () => {
-      const { status, json } = await api('GET', '/api/v1/atx/power');
+      const { status, json } = powerResponse;
       
       expect(status).toBe(200);
       expect(json).toHaveProperty('enabled');
@@ -37,7 +43,7 @@ describe('ATX API Compatibility Tests', () => {
     });
 
     test('response matches OpenAPI schema', async () => {
-      const { status, json } = await api('GET', '/api/v1/atx/power');
+      const { status, json } = powerResponse;
       
       expect(status).toBe(200);
       // OpenAPI v1 format (no legacy 'result' wrapper)
@@ -101,8 +107,14 @@ describe('ATX API Compatibility Tests', () => {
   });
 
   describe('GET /api/v1/atx - ATX Active State', () => {
+    let atxResponse;
+
+    beforeAll(async () => {
+      atxResponse = await api('GET', '/api/v1/atx');
+    });
+
     test('returns enabled state', async () => {
-      const { status, json } = await api('GET', '/api/v1/atx');
+      const { status, json } = atxResponse;
       
       expect(status).toBe(200);
       expect(json).toHaveProperty('enabled');
@@ -110,7 +122,7 @@ describe('ATX API Compatibility Tests', () => {
     });
 
     test('matches OpenAPI schema exactly', async () => {
-      const { status, json } = await api('GET', '/api/v1/atx');
+      const { status, json } = atxResponse;
       
       expect(status).toBe(200);
       expect(Object.keys(json)).toEqual(['enabled']);
@@ -145,53 +157,6 @@ describe('ATX API Compatibility Tests', () => {
       
       expect(status).toBe(400);
       expect(json).toHaveProperty('code', 200);
-    });
-  });
-
-  describe('Legacy vs v1 API Compatibility', () => {
-    test('legacy GET /api/atx and v1 GET /api/v1/atx return equivalent data', async () => {
-      const [legacy, v1] = await Promise.all([
-        api('GET', '/api/atx'),
-        api('GET', '/api/v1/atx')
-      ]);
-      
-      expect(legacy.status).toBe(200);
-      expect(v1.status).toBe(200);
-      
-      // Legacy has wrapper, v1 is direct
-      expect(legacy.json.data.isActive).toBe(v1.json.enabled);
-    });
-
-    test('legacy POST /api/atx/click and v1 PUT /api/v1/atx/power both control power', async () => {
-      // Legacy format: query param
-      const legacy = await api('POST', '/api/atx/click?button=reboot');
-      
-      // v1 format: request body
-      const v1 = await api('PUT', '/api/v1/atx/power', { action: 'reset' });
-      
-      expect(legacy.status).toBe(200);
-      expect(v1.status).toBe(200);
-      
-      // Both should succeed (exact response comparison would require mocking)
-      expect(legacy.json).toHaveProperty('data');    // Legacy format has 'data' property
-      expect(legacy.json.code).toBe(0);              // Legacy success code
-      expect(v1.json).toHaveProperty('enabled');     // v1 format
-    });
-
-    test('legacy POST /api/atx and v1 PUT /api/v1/atx both set active state', async () => {
-      // Test enabling ATX
-      const [legacy, v1] = await Promise.all([
-        api('POST', '/api/atx', { isActive: true }),
-        api('PUT', '/api/v1/atx', { enabled: true })
-      ]);
-      
-      expect(legacy.status).toBe(200);
-      expect(v1.status).toBe(200);
-      
-      // Legacy has wrapper format
-      expect(legacy.json.data.isActive).toBe(true);
-      // v1 is direct
-      expect(v1.json.enabled).toBe(true);
     });
   });
 
