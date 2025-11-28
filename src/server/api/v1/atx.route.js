@@ -22,15 +22,11 @@ export async function getATXPower(req, res, next) {
     const atx = new ATX();
     const state = atx.getATXState();
     
-    // Get active state from config
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    const enabled = config.atx?.isActive ?? true;
+    // Use data already read by getATXState() to avoid duplicate file I/O
+    const enabled = state.isActive ?? true;
     
-    // Convert legacy state format to v1 format
-    let power = 'unknown';
-    if (state && typeof state.power !== 'undefined') {
-      power = state.power ? 'on' : 'off';
-    }
+    // Convert GPIO state to v1 format - GPIO can always be read
+    const power = state.ledPwr ? 'on' : 'off';
     
     res.json({
       enabled,
@@ -76,13 +72,12 @@ export async function setATXPower(req, res, next) {
     // Return updated state
     const atx = new ATX();
     const state = atx.getATXState();
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    const enabled = config.atx?.isActive ?? true;
     
-    let power = 'unknown';
-    if (state && typeof state.power !== 'undefined') {
-      power = state.power ? 'on' : 'off';
-    }
+    // Use data already read by getATXState() to avoid duplicate file I/O
+    const enabled = state.isActive ?? true;
+    
+    // Convert GPIO state to v1 format - GPIO can always be read
+    const power = state.ledPwr ? 'on' : 'off';
     
     res.json({
       enabled,

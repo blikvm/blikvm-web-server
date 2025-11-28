@@ -139,16 +139,11 @@ paths:
                   value:
                     enabled: true
                     power: "off"
-                unknown:
-                  summary: Power state unknown
-                  value:
-                    enabled: true
-                    power: "unknown"
                 disabled:
                   summary: ATX disabled
                   value:
                     enabled: false
-                    power: "unknown"
+                    power: "off"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -230,7 +225,7 @@ components:
           example: true
         power:
           type: string
-          enum: [on, off, unknown]
+          enum: [on, off]
           description: Current power state of the target server
           example: "on"
       additionalProperties: false

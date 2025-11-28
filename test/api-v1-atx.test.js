@@ -39,7 +39,7 @@ describe('ATX API Compatibility Tests', () => {
       expect(json).toHaveProperty('enabled');
       expect(json).toHaveProperty('power');
       expect(typeof json.enabled).toBe('boolean');
-      expect(['on', 'off', 'unknown']).toContain(json.power);
+      expect(['on', 'off']).toContain(json.power);
     });
 
     test('response matches OpenAPI schema', async () => {
@@ -68,7 +68,7 @@ describe('ATX API Compatibility Tests', () => {
       expect(status).toBe(200);
       expect(json).toHaveProperty('enabled');
       expect(json).toHaveProperty('power');
-      expect(['on', 'off', 'unknown']).toContain(json.power);
+      expect(['on', 'off']).toContain(json.power);
     });
 
     test('rejects invalid action with validation error', async () => {
