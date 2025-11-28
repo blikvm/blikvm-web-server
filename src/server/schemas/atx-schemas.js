@@ -13,7 +13,7 @@ export const ATXStateSchema = {
     },
     power: {
       type: 'string',
-      enum: ['on', 'off', 'unknown'],
+      enum: ['on', 'off'],
       description: 'Current power state'
     }
   },
