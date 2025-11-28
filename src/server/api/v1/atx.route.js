@@ -9,6 +9,38 @@ import { writeJsonAtomic } from '../../../common/atomic-file.js';
 import { CONFIG_PATH, UTF8 } from '../../../common/constants.js';
 import { createSocket } from 'unix-dgram';
 
+// Cache config at module level
+let cachedConfig = null;
+let configLastRead = 0;
+const CONFIG_CACHE_TTL = 5000; // 5 second cache
+
+/**
+ * Get cached configuration to avoid repeated file I/O
+ * @returns {Promise<Object>} Parsed configuration object
+ */
+async function getConfig() {
+  const now = Date.now();
+  if (!cachedConfig || (now - configLastRead) > CONFIG_CACHE_TTL) {
+    const configText = await fs.promises.readFile(CONFIG_PATH, UTF8);
+    cachedConfig = JSON.parse(configText);
+    configLastRead = now;
+  }
+  return cachedConfig;
+}
+
+/**
+ * Convert ATX state to v1 response format
+ * @param {Object} state - ATX state from getATXState()
+ * @returns {Object} v1 formatted response
+ */
+function formatATXResponse(state) {
+  const enabled = state.isActive ?? true;
+  const power = (state?.ledPwr === true) ? 'on' : 
+                (state?.ledPwr === false) ? 'off' : 
+                'unknown';
+  return { enabled, power };
+}
+
 /**
  * Get current ATX power state
  * GET /api/v1/atx/power
@@ -22,18 +54,7 @@ export async function getATXPower(req, res, next) {
     const atx = new ATX();
     const state = atx.getATXState();
     
-    // Use data already read by getATXState() to avoid duplicate file I/O
-    const enabled = state.isActive ?? true;
-    
-    // Convert GPIO state to v1 format - handle cases where GPIO unavailable
-    const power = (state?.ledPwr === true) ? 'on' : 
-                  (state?.ledPwr === false) ? 'off' : 
-                  'unknown';
-    
-    res.json({
-      enabled,
-      power
-    });
+    res.json(formatATXResponse(state));
   } catch (error) {
     next(error);
   }
@@ -61,32 +82,19 @@ export async function setATXPower(req, res, next) {
     };
     
     const command = actionMap[action];
-    if (!command) {
-      const error = new Error(`Invalid action: ${action}`);
-      error.statusCode = 400;
-      error.code = 'INVALID_ACTION';
-      throw error;
-    }
+    
+    // Get socket path from cached config
+    const config = await getConfig();
+    const socketPath = config.atx?.controlSockFilePath;
     
     // Execute power command
-    await writeToSocket(command.cmd);
+    await writeToSocket(command.cmd, socketPath);
     
     // Return updated state
     const atx = new ATX();
     const state = atx.getATXState();
     
-    // Use data already read by getATXState() to avoid duplicate file I/O
-    const enabled = state.isActive ?? true;
-    
-    // Convert GPIO state to v1 format - handle cases where GPIO unavailable
-    const power = (state?.ledPwr === true) ? 'on' : 
-                  (state?.ledPwr === false) ? 'off' : 
-                  'unknown';
-    
-    res.json({
-      enabled,
-      power
-    });
+    res.json(formatATXResponse(state));
   } catch (error) {
     next(error);
   }
@@ -102,7 +110,7 @@ export async function setATXPower(req, res, next) {
  */
 export async function getATXActive(req, res, next) {
   try {
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    const config = await getConfig();
     const enabled = config.atx?.isActive ?? true;
     
     res.json({ enabled });
@@ -139,9 +147,10 @@ export async function setATXActive(req, res, next) {
  * Write command to ATX socket (shared with legacy implementation)
  * 
  * @param {number} cmd - Command to send
+ * @param {string} socketPath - Path to ATX control socket
  * @returns {Promise<void>}
  */
-function writeToSocket(cmd) {
+function writeToSocket(cmd, socketPath) {
   return new Promise((resolve, reject) => {
     const message = Buffer.from([cmd]);
     const client = createSocket('unix_dgram');
@@ -150,9 +159,6 @@ function writeToSocket(cmd) {
       client.close();
       reject(err);
     });
-    
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    const socketPath = config.atx?.controlSockFilePath;
     
     if (!socketPath) {
       client.close();

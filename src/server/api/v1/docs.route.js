@@ -10,14 +10,24 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Cache spec at module load time
+const specPath = path.join(__dirname, '../../../../docs/openapi-v1.yaml');
+let cachedSpec = null;
+
+function getSpec() {
+  if (!cachedSpec || process.env.NODE_ENV === 'development') {
+    cachedSpec = fs.readFileSync(specPath, 'utf8');
+  }
+  return cachedSpec;
+}
+
 /**
  * Serve OpenAPI specification as YAML
  * GET /api/v1/docs/openapi.yaml
  */
 export function getOpenAPISpec(req, res, next) {
   try {
-    const specPath = path.join(__dirname, '../../../../docs/openapi-v1.yaml');
-    const spec = fs.readFileSync(specPath, 'utf8');
+    const spec = getSpec();
     
     res.setHeader('Content-Type', 'text/yaml');
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,29 +37,6 @@ export function getOpenAPISpec(req, res, next) {
   }
 }
 
-/**
- * Serve OpenAPI specification as JSON
- * GET /api/v1/docs/openapi.json
- */
-export function getOpenAPISpecJSON(req, res, next) {
-  try {
-    const specPath = path.join(__dirname, '../../../../docs/openapi-v1.yaml');
-    const yamlSpec = fs.readFileSync(specPath, 'utf8');
-    
-    // For now, serve YAML content with JSON content-type
-    // In production, you'd want to parse YAML and convert to JSON
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    
-    // Simple response indicating YAML-to-JSON conversion needed
-    res.json({
-      message: "YAML spec available at /api/v1/docs/openapi.yaml",
-      yaml_content: yamlSpec
-    });
-  } catch (error) {
-    next(error);
-  }
-}
 
 /**
  * Serve basic Swagger UI HTML

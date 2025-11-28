@@ -28,8 +28,7 @@ export function validateRequestBody(schema) {
       ret.data = {
         errors: validate.errors.map(err => ({
           field: err.instancePath.substring(1) || err.params?.missingProperty,
-          message: err.message,
-          value: err.data
+          message: err.message
         }))
       };
       
