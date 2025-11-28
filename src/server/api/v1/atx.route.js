@@ -9,23 +9,29 @@ import { writeJsonAtomic } from '../../../common/atomic-file.js';
 import { CONFIG_PATH, UTF8 } from '../../../common/constants.js';
 import { createSocket } from 'unix-dgram';
 
-// Cache config at module level
-let cachedConfig = null;
-let configLastRead = 0;
-const CONFIG_CACHE_TTL = 5000; // 5 second cache
+// Read static config once at module load
+const SOCKET_PATH = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8)).atx?.controlSockFilePath;
+
+// Cache only dynamic user configuration
+let userConfigCache = null;
+let userConfigLastRead = 0;
+const USER_CONFIG_TTL = 5000; // 5 second cache for user settings
 
 /**
- * Get cached configuration to avoid repeated file I/O
- * @returns {Promise<Object>} Parsed configuration object
+ * Get cached user configuration (only dynamic settings)
+ * @returns {Promise<Object>} Cached user configuration object
  */
-async function getConfig() {
+async function getUserConfig() {
   const now = Date.now();
-  if (!cachedConfig || (now - configLastRead) > CONFIG_CACHE_TTL) {
+  if (!userConfigCache || (now - userConfigLastRead) > USER_CONFIG_TTL) {
     const configText = await fs.promises.readFile(CONFIG_PATH, UTF8);
-    cachedConfig = JSON.parse(configText);
-    configLastRead = now;
+    const config = JSON.parse(configText);
+    userConfigCache = {
+      isActive: config.atx?.isActive ?? true
+    };
+    userConfigLastRead = now;
   }
-  return cachedConfig;
+  return userConfigCache;
 }
 
 /**
@@ -83,18 +89,16 @@ export async function setATXPower(req, res, next) {
     
     const command = actionMap[action];
     
-    // Get socket path from cached config
-    const config = await getConfig();
-    const socketPath = config.atx?.controlSockFilePath;
+    // Execute power command using static socket path
+    await writeToSocket(command.cmd, SOCKET_PATH);
     
-    // Execute power command
-    await writeToSocket(command.cmd, socketPath);
-    
-    // Return updated state
-    const atx = new ATX();
-    const state = atx.getATXState();
-    
-    res.json(formatATXResponse(state));
+    // Return command confirmation (GPIO takes minutes to update)
+    res.json({ 
+      success: true, 
+      action: action,
+      message: command.msg,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     next(error);
   }
@@ -110,8 +114,8 @@ export async function setATXPower(req, res, next) {
  */
 export async function getATXActive(req, res, next) {
   try {
-    const config = await getConfig();
-    const enabled = config.atx?.isActive ?? true;
+    const userConfig = await getUserConfig();
+    const enabled = userConfig.isActive;
     
     res.json({ enabled });
   } catch (error) {
