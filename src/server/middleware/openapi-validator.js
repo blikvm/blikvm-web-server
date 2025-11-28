@@ -5,7 +5,6 @@
 
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { createApiObj, ApiCode } from '../../common/api.js';
 import Logger from '../../log/logger.js';
 
 const ajv = new Ajv({ allErrors: true });
@@ -25,17 +24,22 @@ export function validateRequestBody(schema) {
     const valid = validate(req.body);
     
     if (!valid) {
-      const ret = createApiObj();
-      ret.msg = 'Request validation failed';
-      ret.code = ApiCode.INVALID_INPUT_PARAM;
-      ret.data = {
-        errors: validate.errors.map(err => ({
-          field: err.instancePath.substring(1) || err.params?.missingProperty,
-          message: err.message
-        }))
+      // OpenAPI v1 direct response format (no wrapper)
+      const errors = validate.errors.map(err => ({
+        field: err.instancePath.substring(1) || err.params?.missingProperty,
+        message: err.message,
+        value: err.data
+      }));
+      
+      const response = {
+        error: 'Validation failed',
+        message: `Invalid request data. ${errors.length} validation error(s) found.`,
+        details: {
+          errors: errors
+        }
       };
       
-      return res.status(400).json(ret);
+      return res.status(400).json(response);
     }
     
     next();
@@ -74,7 +78,7 @@ export function validateResponseBody(schema) {
 
 /**
  * OpenAPI v1 error handler
- * Converts errors to consistent v1 format
+ * Converts errors to consistent v1 format (direct response, no wrapper)
  */
 export function openApiErrorHandler(err, req, res, next) {
   if (res.headersSent) {
@@ -83,13 +87,21 @@ export function openApiErrorHandler(err, req, res, next) {
 
   logger.error(`OpenAPI v1 Error: ${err.message || err}`);
 
+  // Consistent v1 error format
   const response = {
-    error: err.message || 'Internal server error',
-    code: err.code || 'INTERNAL_ERROR'
+    error: err.name || 'Internal Server Error',
+    message: err.message || 'An unexpected error occurred',
+    timestamp: new Date().toISOString()
   };
 
+  // Add error details if available
   if (err.details) {
     response.details = err.details;
+  }
+
+  // Add error code if available
+  if (err.code) {
+    response.code = err.code;
   }
 
   const statusCode = err.statusCode || err.status || 500;
