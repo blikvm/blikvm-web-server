@@ -3,12 +3,18 @@
  * REST-compliant API routes with validation
  */
 
-import { getATXPower, setATXPower, getATXActive, setATXActive } from './atx.route.js';
+import { getATXPower, setATXPower, getATXActive, setATXActive, resetATXRateLimit_API } from './atx.route.js';
+import { getHIDStatus, setHIDMode, sendKeyboardEvent, sendMouseEvent } from './hid.route.js';
 import { validateRequestBody } from '../../middleware/openapi-validator.js';
 import { 
   ATXPowerRequestSchema, 
   ATXActiveRequestSchema 
 } from '../../schemas/atx-schemas.js';
+import {
+  HIDModeRequestSchema,
+  KeyEventRequestSchema,
+  MouseEventRequestSchema
+} from '../../schemas/hid-schemas.js';
 
 /**
  * OpenAPI v1 route definitions
@@ -40,6 +46,42 @@ const v1Routes = [
     method: 'put',
     handler: setATXActive,
     middleware: [validateRequestBody(ATXActiveRequestSchema)]
+  },
+  
+  // ATX Rate Limit Reset (for testing)
+  {
+    path: '/api/v1/atx/reset-rate-limit',
+    method: 'post',
+    handler: resetATXRateLimit_API,
+    middleware: []
+  },
+  
+  // HID Status and Configuration
+  {
+    path: '/api/v1/hid/status',
+    method: 'get',
+    handler: getHIDStatus,
+    middleware: []
+  },
+  {
+    path: '/api/v1/hid/mode',
+    method: 'put',
+    handler: setHIDMode,
+    middleware: [validateRequestBody(HIDModeRequestSchema)]
+  },
+  
+  // Real-time Input Events (Performance Critical)
+  {
+    path: '/api/v1/hid/keyboard/event',
+    method: 'post',
+    handler: sendKeyboardEvent,
+    middleware: [] // Using KEYMAP validation in handler for better error messages
+  },
+  {
+    path: '/api/v1/hid/mouse/event',
+    method: 'post',
+    handler: sendMouseEvent,
+    middleware: [validateRequestBody(MouseEventRequestSchema)]
   }
 ];
 

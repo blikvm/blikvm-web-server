@@ -15,6 +15,19 @@ export const ATXStateSchema = {
       type: 'string',
       enum: ['on', 'off', 'unknown'],
       description: 'Current power state'
+    },
+    last_action: {
+      type: 'object',
+      properties: {
+        command: { type: 'string' },
+        description: { type: 'string' },
+        timestamp: { type: 'string', format: 'date-time' },
+        response_time_ms: { type: 'number' }
+      }
+    },
+    hardware_status: {
+      type: 'string',
+      enum: ['connected', 'unknown', 'error']
     }
   },
   additionalProperties: false
