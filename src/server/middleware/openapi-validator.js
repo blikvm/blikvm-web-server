@@ -25,10 +25,11 @@ export function validateRequestBody(schema) {
     
     if (!valid) {
       // OpenAPI v1 direct response format (no wrapper)
+      // Remove sensitive data exposure in validation errors (CodeRabbit feedback)
       const errors = validate.errors.map(err => ({
         field: err.instancePath.substring(1) || err.params?.missingProperty,
-        message: err.message,
-        value: err.data
+        message: err.message
+        // Removed value field to prevent sensitive data exposure
       }));
       
       const response = {

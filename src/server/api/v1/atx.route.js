@@ -12,6 +12,9 @@ import { createSocket } from 'unix-dgram';
 // Read static config once at module load
 const SOCKET_PATH = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8)).atx?.controlSockFilePath;
 
+// Reuse ATX instance at module level (CodeRabbit feedback)
+const atxInstance = new ATX();
+
 // Cache only dynamic user configuration
 let userConfigCache = null;
 let userConfigLastRead = 0;
@@ -57,8 +60,7 @@ function formatATXResponse(state) {
  */
 export async function getATXPower(req, res, next) {
   try {
-    const atx = new ATX();
-    const state = atx.getATXState();
+    const state = atxInstance.getATXState();
     
     res.json(formatATXResponse(state));
   } catch (error) {
@@ -140,6 +142,10 @@ export async function setATXActive(req, res, next) {
       if (!cfg.atx) cfg.atx = {};
       cfg.atx.isActive = enabled;
     });
+    
+    // Invalidate user config cache after update (CodeRabbit feedback)
+    userConfigCache = null;
+    userConfigLastRead = 0;
     
     res.json({ enabled });
   } catch (error) {
