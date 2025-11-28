@@ -33,6 +33,7 @@ import fs from 'fs';
 import routes from './api/routes.js';
 import v1Routes from './api/v1/routes.js';
 import { openApiErrorHandler } from './middleware/openapi-validator.js';
+import { getSwaggerUI, getOpenAPISpec } from './api/v1/docs.route.js';
 import { WebSocketServer, WebSocket } from 'ws';
 import Mouse from './mouse.js';
 import Keyboard from './keyboard.js';
@@ -386,21 +387,8 @@ class HttpServer {
     app.get('/api/virtual-media/:filename', apiDownloadFile);
     
     // OpenAPI documentation (public, no auth required)
-    app.get('/api/v1/docs', (req, res) => {
-      import('./api/v1/docs.route.js').then(module => {
-        module.getSwaggerUI(req, res, () => {});
-      });
-    });
-    app.get('/api/v1/docs/openapi.yaml', (req, res) => {
-      import('./api/v1/docs.route.js').then(module => {
-        module.getOpenAPISpec(req, res, () => {});
-      });
-    });
-    app.get('/api/v1/docs/openapi.json', (req, res) => {
-      import('./api/v1/docs.route.js').then(module => {
-        module.getOpenAPISpecJSON(req, res, () => {});
-      });
-    });
+    app.get('/api/v1/docs', getSwaggerUI);
+    app.get('/api/v1/docs/openapi.yaml', getOpenAPISpec);
 
 
     const PrometheusMetricsObj = new PrometheusMetrics();
