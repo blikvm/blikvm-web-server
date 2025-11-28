@@ -25,8 +25,10 @@ export async function getATXPower(req, res, next) {
     // Use data already read by getATXState() to avoid duplicate file I/O
     const enabled = state.isActive ?? true;
     
-    // Convert GPIO state to v1 format - GPIO can always be read
-    const power = state.ledPwr ? 'on' : 'off';
+    // Convert GPIO state to v1 format - handle cases where GPIO unavailable
+    const power = (state?.ledPwr === true) ? 'on' : 
+                  (state?.ledPwr === false) ? 'off' : 
+                  'unknown';
     
     res.json({
       enabled,
@@ -76,8 +78,10 @@ export async function setATXPower(req, res, next) {
     // Use data already read by getATXState() to avoid duplicate file I/O
     const enabled = state.isActive ?? true;
     
-    // Convert GPIO state to v1 format - GPIO can always be read
-    const power = state.ledPwr ? 'on' : 'off';
+    // Convert GPIO state to v1 format - handle cases where GPIO unavailable
+    const power = (state?.ledPwr === true) ? 'on' : 
+                  (state?.ledPwr === false) ? 'off' : 
+                  'unknown';
     
     res.json({
       enabled,
