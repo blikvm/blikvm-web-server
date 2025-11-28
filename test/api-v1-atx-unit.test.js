@@ -55,10 +55,10 @@ describe('OpenAPI v1 ATX Validation Unit Tests', () => {
       expect(res.json).toHaveBeenCalled();
       
       const errorResponse = res.json.mock.calls[0][0];
-      expect(errorResponse).toHaveProperty('msg');
-      expect(errorResponse.msg).toContain('validation');
-      expect(errorResponse).toHaveProperty('code', 200);
-      expect(Array.isArray(errorResponse.data.errors)).toBe(true);
+      expect(errorResponse).toHaveProperty('error', 'Validation failed');
+      expect(errorResponse).toHaveProperty('message');
+      expect(errorResponse.message).toContain('validation error');
+      expect(Array.isArray(errorResponse.details.errors)).toBe(true);
     });
 
     test('rejects missing action field', () => {
@@ -72,7 +72,7 @@ describe('OpenAPI v1 ATX Validation Unit Tests', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       
       const errorResponse = res.json.mock.calls[0][0];
-      expect(errorResponse.data.errors.some(e => e.field === 'action')).toBe(true);
+      expect(errorResponse.details.errors.some(e => e.field === 'action')).toBe(true);
     });
 
     test('rejects extra fields', () => {
@@ -95,6 +95,9 @@ describe('OpenAPI v1 ATX Validation Unit Tests', () => {
       
       expect(next).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(400);
+      
+      const errorResponse = res.json.mock.calls[0][0];
+      expect(errorResponse).toHaveProperty('error', 'Validation failed');
     });
   });
 
@@ -128,7 +131,7 @@ describe('OpenAPI v1 ATX Validation Unit Tests', () => {
         expect(res.status).toHaveBeenCalledWith(400);
         
         const errorResponse = res.json.mock.calls[res.json.mock.calls.length - 1][0];
-        expect(errorResponse.data.errors.some(e => e.field === 'enabled')).toBe(true);
+        expect(errorResponse.details.errors.some(e => e.field === 'enabled')).toBe(true);
       });
     });
 
@@ -175,14 +178,14 @@ describe('OpenAPI v1 ATX Validation Unit Tests', () => {
         
         const errorResponse = res.json.mock.calls[res.json.mock.calls.length - 1][0];
         
-        // Consistent error structure
-        expect(errorResponse).toHaveProperty('msg');
-        expect(errorResponse).toHaveProperty('code', 200);
-        expect(errorResponse).toHaveProperty('data');
-        expect(Array.isArray(errorResponse.data.errors)).toBe(true);
+        // Consistent v1 error structure
+        expect(errorResponse).toHaveProperty('error', 'Validation failed');
+        expect(errorResponse).toHaveProperty('message');
+        expect(errorResponse).toHaveProperty('details');
+        expect(Array.isArray(errorResponse.details.errors)).toBe(true);
         
         // Each error has required fields
-        errorResponse.data.errors.forEach(error => {
+        errorResponse.details.errors.forEach(error => {
           expect(error).toHaveProperty('field');
           expect(error).toHaveProperty('message');
         });
@@ -218,7 +221,7 @@ describe('OpenAPI v1 ATX Validation Unit Tests', () => {
       validator(req, res, next);
       
       const errorResponse = res.json.mock.calls[0][0];
-      const ajvError = errorResponse.data.errors[0];
+      const ajvError = errorResponse.details.errors[0];
       
       // AJV error structure
       expect(ajvError).toHaveProperty('field', 'action');

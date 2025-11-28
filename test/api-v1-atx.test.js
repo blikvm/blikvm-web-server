@@ -66,23 +66,24 @@ describe('ATX API Compatibility Tests', () => {
       const { status, json } = await api('PUT', '/api/v1/atx/power', { action });
       
       expect(status).toBe(200);
-      expect(json).toHaveProperty('enabled');
-      expect(json).toHaveProperty('power');
-      expect(['on', 'off', 'unknown']).toContain(json.power);
+      expect(json).toHaveProperty('success', true);
+      expect(json).toHaveProperty('action', action);
+      expect(json).toHaveProperty('message');
+      expect(json).toHaveProperty('timestamp');
     });
 
     test('rejects invalid action with validation error', async () => {
       const { status, json } = await api('PUT', '/api/v1/atx/power', { action: 'explode' });
       
       expect(status).toBe(400);
-      expect(json).toHaveProperty('msg');
-      expect(json.msg).toContain('validation');
-      expect(json).toHaveProperty('code', 200);
-      expect(json).toHaveProperty('data');
-      expect(Array.isArray(json.data.errors)).toBe(true);
+      expect(json).toHaveProperty('error', 'Validation failed');
+      expect(json).toHaveProperty('message');
+      expect(json.message).toContain('validation error');
+      expect(json).toHaveProperty('details');
+      expect(Array.isArray(json.details.errors)).toBe(true);
       
-      // AJV validation error format
-      const error = json.data.errors[0];
+      // Updated validation error format
+      const error = json.details.errors[0];
       expect(error).toHaveProperty('field');
       expect(error).toHaveProperty('message');
     });
@@ -91,8 +92,8 @@ describe('ATX API Compatibility Tests', () => {
       const { status, json } = await api('PUT', '/api/v1/atx/power', {});
       
       expect(status).toBe(400);
-      expect(json).toHaveProperty('code', 200);
-      expect(json.data.errors.some(e => e.field === 'action')).toBe(true);
+      expect(json).toHaveProperty('error', 'Validation failed');
+      expect(json.details.errors.some(e => e.field === 'action')).toBe(true);
     });
 
     test('rejects extra fields', async () => {
@@ -102,7 +103,7 @@ describe('ATX API Compatibility Tests', () => {
       });
       
       expect(status).toBe(400);
-      expect(json).toHaveProperty('code', 200);
+      expect(json).toHaveProperty('error', 'Validation failed');
     });
   });
 
@@ -148,15 +149,16 @@ describe('ATX API Compatibility Tests', () => {
       const { status, json } = await api('PUT', '/api/v1/atx', { enabled: 'true' });
       
       expect(status).toBe(400);
-      expect(json).toHaveProperty('code', 200);
-      expect(json.data.errors.some(e => e.field === 'enabled')).toBe(true);
+      expect(json).toHaveProperty('error', 'Validation failed');
+      expect(json.details.errors.some(e => e.field === 'enabled')).toBe(true);
     });
 
     test('rejects missing enabled field', async () => {
       const { status, json } = await api('PUT', '/api/v1/atx', {});
       
       expect(status).toBe(400);
-      expect(json).toHaveProperty('code', 200);
+      expect(json).toHaveProperty('error', 'Validation failed');
+      expect(json.details.errors.some(e => e.field === 'enabled')).toBe(true);
     });
   });
 
@@ -171,13 +173,13 @@ describe('ATX API Compatibility Tests', () => {
         const { status, json } = await api(method, endpoint, body);
         
         expect(status).toBe(400);
-        expect(json).toHaveProperty('msg');
-        expect(json).toHaveProperty('code', 200);
-        expect(json).toHaveProperty('data');
-        expect(Array.isArray(json.data.errors)).toBe(true);
+        expect(json).toHaveProperty('error', 'Validation failed');
+        expect(json).toHaveProperty('message');
+        expect(json).toHaveProperty('details');
+        expect(Array.isArray(json.details.errors)).toBe(true);
         
         // Each error has required fields
-        json.data.errors.forEach(error => {
+        json.details.errors.forEach(error => {
           expect(error).toHaveProperty('field');
           expect(error).toHaveProperty('message');
         });
