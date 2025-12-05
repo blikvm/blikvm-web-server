@@ -46,9 +46,9 @@ export const ATXActiveRequestSchema = {
 
 export const ErrorResponseSchema = {
   type: 'object',
-  required: ['error'],
+  required: ['msg', 'code'],
   properties: {
-    error: {
+    msg: {
       type: 'string',
       description: 'Error message'
     },
@@ -60,5 +60,6 @@ export const ErrorResponseSchema = {
       type: 'object',
       description: 'Additional error details'
     }
-  }
+  },
+  additionalProperties: false
 };

@@ -28,6 +28,20 @@ export async function clearAuth() {
   authToken = null;
 }
 
+export async function clearRateLimits() {
+  try {
+    const response = await api('DELETE', '/api/v1/_test/rate-limits');
+    if (response.status === 200) {
+      console.log('✅ Rate limits cleared for test isolation');
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.warn('⚠️ Could not clear rate limits:', error.message);
+    return false;
+  }
+}
+
 export async function api(method, urlPath, body, extra = {}) {
   const u = new URL(urlPath, baseURL);
   const isHttps = u.protocol === 'https:';
@@ -77,7 +91,7 @@ export async function api(method, urlPath, body, extra = {}) {
         res.on('end', () => {
           let json = null;
           try { json = data ? JSON.parse(data) : null; } catch (_) {}
-          resolve({ status: res.statusCode, json });
+          resolve({ status: res.statusCode, json, headers: res.headers });
         });
       });
       req.on('error', reject);

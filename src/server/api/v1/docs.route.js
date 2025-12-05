@@ -50,7 +50,7 @@ export function getSwaggerUI(req, res, next) {
 <head>
   <meta charset="UTF-8">
   <title>BliKVM API v1 Documentation</title>
-  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@3.52.5/swagger-ui.css" />
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.28.1/swagger-ui.css" />
   <style>
     html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
     *, *:before, *:after { box-sizing: inherit; }
@@ -59,8 +59,8 @@ export function getSwaggerUI(req, res, next) {
 </head>
 <body>
   <div id="swagger-ui"></div>
-  <script src="https://unpkg.com/swagger-ui-dist@3.52.5/swagger-ui-bundle.js"></script>
-  <script src="https://unpkg.com/swagger-ui-dist@3.52.5/swagger-ui-standalone-preset.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.28.1/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.28.1/swagger-ui-standalone-preset.js"></script>
   <script>
     window.onload = function() {
       const ui = SwaggerUIBundle({

@@ -1,6 +1,6 @@
 /**
- * OpenAPI v1 ATX (Power Control) Routes
- * REST-compliant endpoints following OpenAPI specification
+ * ATX API v1 Phase 1 Implementation
+ * Follows PDF specification exactly
  */
 
 import ATX from '../../../modules/kvmd/kvmd_atx.js';
@@ -8,118 +8,69 @@ import fs from 'fs';
 import { writeJsonAtomic } from '../../../common/atomic-file.js';
 import { CONFIG_PATH, UTF8 } from '../../../common/constants.js';
 import { createSocket } from 'unix-dgram';
+import Logger from '../../../log/logger.js';
 
-// Read static config once at module load with error handling (CodeRabbit feedback)
+const logger = new Logger();
+
+// Read static config once at module load
 let SOCKET_PATH;
 try {
   const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
   SOCKET_PATH = config.atx?.controlSockFilePath;
 } catch (error) {
-  console.error('Failed to parse ATX config at module load:', error);
-  SOCKET_PATH = '/var/blikvm/atx.sock'; // Fallback to default path
+  logger.error('Failed to parse ATX config at module load:', error);
+  SOCKET_PATH = '/var/blikvm/atx.sock';
 }
 
-// Reuse ATX instance at module level (CodeRabbit feedback)
 const atxInstance = new ATX();
 
-// Cache only dynamic user configuration
-let userConfigCache = null;
-let userConfigLastRead = 0;
-const USER_CONFIG_TTL = 5000; // 5 second cache for user settings
+// Rate limiting with test isolation
+let lastActionTime = new Map();
+const RATE_LIMIT_MS = 3000; // 3 seconds
 
 /**
- * Get cached user configuration (only dynamic settings)
- * @returns {Promise<Object>} Cached user configuration object
+ * Test-only endpoint to clear rate limits
+ * Only available in test environment
  */
-async function getUserConfig() {
-  const now = Date.now();
-  if (!userConfigCache || (now - userConfigLastRead) > USER_CONFIG_TTL) {
-    const configText = await fs.promises.readFile(CONFIG_PATH, UTF8);
-    const config = JSON.parse(configText);
-    userConfigCache = {
-      isActive: config.atx?.isActive ?? true
-    };
-    userConfigLastRead = now;
-  }
-  return userConfigCache;
-}
-
-/**
- * Convert ATX state to v1 response format
- * @param {Object} state - ATX state from getATXState()
- * @returns {Object} v1 formatted response
- */
-function formatATXResponse(state) {
-  // More resilient to null/undefined states (CodeRabbit feedback)
-  if (!state || typeof state !== 'object') {
-    return { enabled: true, power: 'unknown' };
+export function clearRateLimitsForTesting(req, res, next) {
+  if (process.env.NODE_ENV !== 'test') {
+    return res.status(404).json({
+      error: 'not_found',
+      message: 'Test endpoints only available in test environment'
+    });
   }
   
-  const enabled = state.isActive ?? true;
-  const power = (state.ledPwr === true) ? 'on' : 
-                (state.ledPwr === false) ? 'off' : 
-                'unknown';
-  return { enabled, power };
-}
-
-/**
- * Get current ATX power state
- * GET /api/v1/atx/power
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware
- */
-export async function getATXPower(req, res, next) {
   try {
-    const state = atxInstance.getATXState();
-    
-    res.json(formatATXResponse(state));
+    // Create a new Map to fully reset rate limiting state
+    lastActionTime = new Map();
+    res.json({ 
+      cleared: true, 
+      message: 'Rate limits cleared for testing' 
+    });
   } catch (error) {
     next(error);
   }
 }
 
+// Direct command mapping (PDF page 26)
+const COMMAND_MAP = {
+  'short_press': 128,    // power_on - 500ms
+  'long_press': 192,     // power_off - 5000ms
+  'reset': 8             // power_reset - 500ms
+};
+
 /**
- * Control ATX power state
- * PUT /api/v1/atx/power
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object  
- * @param {Function} next - Express next middleware
+ * GET /api/v1/atx/status
  */
-export async function setATXPower(req, res, next) {
+export async function getATXStatus(req, res, next) {
   try {
-    const { action } = req.body;
+    const state = atxInstance.getATXState();
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
     
-    // Map v1 actions to legacy commands
-    const actionMap = {
-      'short_press': { cmd: 128, msg: 'Short click on the power button' },
-      'long_press': { cmd: 192, msg: 'Long press on the power button (5+ seconds)' },
-      'on': { cmd: 128, msg: 'Short click on the power button' },
-      'off': { cmd: 192, msg: 'Long press on the power button (5+ seconds)' },
-      'reset': { cmd: 8, msg: 'Short click on the reset button' }
-    };
-    
-    const command = actionMap[action];
-    
-    // Guard against unsupported action values (CodeRabbit feedback)
-    if (!command) {
-      return res.status(400).json({
-        error: 'Invalid action',
-        message: `Unsupported action "${action}". Valid actions: ${Object.keys(actionMap).join(', ')}`
-      });
-    }
-    
-    // Execute power command using static socket path
-    await writeToSocket(command.cmd, SOCKET_PATH);
-    
-    // Return command confirmation (GPIO takes minutes to update)
-    res.json({ 
-      success: true, 
-      action: action,
-      message: command.msg,
-      timestamp: new Date().toISOString()
+    res.json({
+      enabled: config.atx?.isActive ?? true,
+      power: state.ledPwr === true,
+      hdd_active: state.ledHdd === true
     });
   } catch (error) {
     next(error);
@@ -127,46 +78,17 @@ export async function setATXPower(req, res, next) {
 }
 
 /**
- * Get ATX active state
- * GET /api/v1/atx
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware
- */
-export async function getATXActive(req, res, next) {
-  try {
-    const userConfig = await getUserConfig();
-    const enabled = userConfig.isActive;
-    
-    res.json({ enabled });
-  } catch (error) {
-    next(error);
-  }
-}
-
-/**
- * Enable/disable ATX
  * PUT /api/v1/atx
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware
  */
-export async function setATXActive(req, res, next) {
+export async function updateATXConfig(req, res, next) {
   try {
     const { enabled } = req.body;
-    
-    // Update configuration
+
     await writeJsonAtomic(CONFIG_PATH, (cfg) => {
       if (!cfg.atx) cfg.atx = {};
       cfg.atx.isActive = enabled;
     });
     
-    // Invalidate user config cache after update (CodeRabbit feedback)
-    userConfigCache = null;
-    userConfigLastRead = 0;
-    
     res.json({ enabled });
   } catch (error) {
     next(error);
@@ -174,11 +96,59 @@ export async function setATXActive(req, res, next) {
 }
 
 /**
- * Write command to ATX socket (shared with legacy implementation)
- * 
- * @param {number} cmd - Command to send
- * @param {string} socketPath - Path to ATX control socket
- * @returns {Promise<void>}
+ * POST /api/v1/atx/actions
+ */
+export async function createATXAction(req, res, next) {
+  try {
+    const { type } = req.body;
+    const clientIp = req.ip || req.connection.remoteAddress;
+
+    // Check if ATX is enabled
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
+    if (!config.atx?.isActive) {
+      return res.status(403).json({
+        error: 'atx_disabled',
+        message: 'ATX control is disabled. Enable via PUT /api/v1/atx.'
+      });
+    }
+
+    // Rate limiting (3s interval)
+    const now = Date.now();
+    const lastTime = lastActionTime.get(clientIp) || 0;
+    const timeDiff = now - lastTime;
+    
+    if (timeDiff < RATE_LIMIT_MS) {
+      const retryAfter = Math.ceil((RATE_LIMIT_MS - timeDiff) / 1000);
+      res.set('Retry-After', retryAfter);
+      return res.status(429).json({
+        error: 'rate_limited',
+        message: `Minimum 3s interval between power commands. Retry in ${retryAfter}s`
+      });
+    }
+
+    // Execute action via consolidated mapping
+    const cmd = COMMAND_MAP[type];
+    if (cmd === undefined) {
+      return res.status(400).json({
+        error: 'invalid_type',
+        message: `Invalid action type '${type}'. Use: short_press, long_press, reset`
+      });
+    }
+    
+    await writeToSocket(cmd, SOCKET_PATH);
+    
+    // Update rate limiting
+    lastActionTime.set(clientIp, now);
+    
+    // Phase 1 response (no storage)
+    res.json({ type });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Write command to ATX socket
  */
 function writeToSocket(cmd, socketPath) {
   return new Promise((resolve, reject) => {

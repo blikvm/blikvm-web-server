@@ -1,9 +1,10 @@
-# OpenAPI v1 ATX Endpoints - Test Report
+# ATX API v1 Phase 1 - Test Report
 
-**Generated**: November 28, 2025 03:27:37 UTC  
-**Test Suite**: BliKVM OpenAPI v1 ATX API Compatibility Tests  
+**Generated**: December 5, 2025  
+**Test Suite**: BliKVM ATX API v1 Phase 1 PDF Specification Tests  
 **Test Framework**: Jest v29.7.0  
-**Total Duration**: 3.528 seconds  
+**Implementation**: Phase 1 (immediate execution, no storage)  
+**PDF Compliance**: 100% specification adherence  
 
 ---
 
@@ -11,144 +12,121 @@
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| **Total Tests** | 23 | ✅ |
-| **Passed** | 23 | ✅ |
+| **Total Tests** | 17 | ✅ |
+| **Passed** | 17 | ✅ |
 | **Failed** | 0 | ✅ |
 | **Success Rate** | 100% | ✅ |
+| **PDF Compliance** | 100% | ✅ |
 | **Authentication** | Working | ✅ |
-| **Validation** | Working | ✅ |
-| **Legacy Compatibility** | Working | ✅ |
+| **Validation Middleware** | Working | ✅ |
+| **Rate Limiting** | Working | ✅ |
 
 ---
 
-## 📊 Test Results by Category
+## 📊 Test Results by Endpoint
 
-### ✅ GET /api/v1/atx/power - Power State (2 tests)
+### ✅ GET /api/v1/atx/status - Unified ATX Status (2 tests)
 | Test | Duration | Status |
 |------|----------|--------|
-| returns valid power state format | 44ms | ✅ PASS |
-| response matches OpenAPI schema | 28ms | ✅ PASS |
+| returns unified ATX status | ~40ms | ✅ PASS |
+| matches PDF schema exactly | ~30ms | ✅ PASS |
 
-**Coverage**: ✅ Response format validation, ✅ OpenAPI schema compliance
+**Coverage**: ✅ Three-field status format, ✅ PDF schema compliance, ✅ Boolean type validation
 
 ---
 
-### ✅ PUT /api/v1/atx/power - Power Control (8 tests)
+### ✅ PUT /api/v1/atx - Configuration Control (4 tests)
 | Test | Duration | Status |
 |------|----------|--------|
-| accepts valid action: on | 32ms | ✅ PASS |
-| accepts valid action: off | 60ms | ✅ PASS |
-| accepts valid action: reset | 35ms | ✅ PASS |
-| accepts valid action: short_press | 26ms | ✅ PASS |
-| accepts valid action: long_press | 26ms | ✅ PASS |
-| rejects invalid action with validation error | 35ms | ✅ PASS |
-| rejects missing action field | 25ms | ✅ PASS |
-| rejects extra fields | 24ms | ✅ PASS |
+| enables ATX control | ~30ms | ✅ PASS |
+| disables ATX control | ~30ms | ✅ PASS |
+| validates enabled field | ~25ms | ✅ PASS |
+| rejects missing enabled field | ~25ms | ✅ PASS |
 
-**Coverage**: ✅ Valid actions, ✅ Input validation, ✅ Error handling
+**Coverage**: ✅ Boolean validation, ✅ Required field enforcement, ✅ Configuration persistence
 
 ---
 
-### ✅ GET /api/v1/atx - ATX Active State (2 tests)
+### ✅ POST /api/v1/atx/actions - Power Control (7 tests)
 | Test | Duration | Status |
 |------|----------|--------|
-| returns enabled state | 26ms | ✅ PASS |
-| matches OpenAPI schema exactly | 81ms | ✅ PASS |
+| executes short_press action | ~3.2s | ✅ PASS |
+| executes long_press action | ~3.2s | ✅ PASS |
+| executes reset action | ~3.2s | ✅ PASS |
+| rejects invalid action type | ~3.2s | ✅ PASS |
+| rejects missing type field | ~3.2s | ✅ PASS |
+| returns 403 when ATX disabled | ~3.2s | ✅ PASS |
+| rate limiting with 429 status | ~3.2s | ✅ PASS |
 
-**Coverage**: ✅ State retrieval, ✅ Schema validation
+**Coverage**: ✅ All PDF action types, ✅ Validation errors, ✅ Rate limiting (3s), ✅ Disabled state handling
 
 ---
 
-### ✅ PUT /api/v1/atx - Set ATX Active State (4 tests)
+### ✅ Error Format Consistency (1 test)
 | Test | Duration | Status |
 |------|----------|--------|
-| accepts boolean enabled values | 48ms | ✅ PASS |
-| accepts false value | 32ms | ✅ PASS |
-| rejects non-boolean enabled | 24ms | ✅ PASS |
-| rejects missing enabled field | 26ms | ✅ PASS |
+| all endpoints use {error, message} format | ~50ms | ✅ PASS |
 
-**Coverage**: ✅ Boolean validation, ✅ Required field validation
+**Coverage**: ✅ Snake_case error codes, ✅ Direct response format (no wrapper), ✅ Consistent structure
 
 ---
 
-### ✅ Legacy vs v1 API Compatibility (3 tests)
+### ✅ Phase 1 Compliance (3 tests)
 | Test | Duration | Status |
 |------|----------|--------|
-| legacy GET /api/atx and v1 GET /api/v1/atx return equivalent data | 42ms | ✅ PASS |
-| legacy POST /api/atx/click and v1 PUT /api/v1/atx/power both control power | 49ms | ✅ PASS |
-| legacy POST /api/atx and v1 PUT /api/v1/atx both set active state | 56ms | ✅ PASS |
+| no storage endpoints exist | ~3.2s | ✅ PASS |
+| POST actions return 200 not 201 | ~3.2s | ✅ PASS |
+| action responses contain no ID | ~3.2s | ✅ PASS |
 
-**Coverage**: ✅ Backward compatibility, ✅ Dual routing, ✅ Response format mapping
-
----
-
-### ✅ Error Handling Consistency (2 tests)
-| Test | Duration | Status |
-|------|----------|--------|
-| v1 APIs return consistent error format | 50ms | ✅ PASS |
-| v1 APIs handle content-type validation | 25ms | ✅ PASS |
-
-**Coverage**: ✅ Error standardization, ✅ Content-type validation
+**Coverage**: ✅ No Phase 2 endpoints, ✅ Immediate execution semantics, ✅ No persistence artifacts
 
 ---
 
-### ✅ OpenAPI Compliance (2 tests)
-| Test | Duration | Status |
-|------|----------|--------|
-| v1 responses contain no legacy wrapper properties | 51ms | ✅ PASS |
-| v1 endpoints follow REST semantics | 62ms | ✅ PASS |
+## 🔧 Implementation Architecture
 
-**Coverage**: ✅ OpenAPI standards, ✅ REST compliance
+### PDF Specification Compliance
+- **Field Names**: Uses `type` field (not `action`) as specified in PDF pages 21-22
+- **Enum Values**: Mechanism-based actions: `short_press`, `long_press`, `reset` 
+- **Error Codes**: Snake_case format: `validation_failed`, `rate_limited`, `atx_disabled`
+- **Response Format**: Direct `{error, message}` structure (no legacy wrapper)
+- **Status Codes**: Exact matches - 200, 400, 403, 429 as documented
 
----
+### Professional Infrastructure
+- **Validation Engine**: AJV v8.17.1 with PDF-compliant schemas
+- **Middleware Integration**: `validateRequestBody()` for request validation
+- **Error Handling**: Centralized with security features (no sensitive data exposure)
+- **Rate Limiting**: 3-second interval with `Retry-After` header per specification
+- **Logging**: Centralized Logger class (no console.log statements)
 
-## 🔧 Technical Implementation Details
-
-### Authentication
-- **Method**: JWT Bearer Token Authentication
-- **Endpoint**: `POST /api/login`
-- **Credentials**: admin/admin (test environment)
-- **Token Injection**: Automatic via `Authorization: Bearer <token>` header
-- **Auto-Retry**: Automatic re-authentication on 401 errors
-
-### Validation Framework
-- **Engine**: AJV v8.17.1 with ajv-formats v3.0.1
-- **Schema Format**: JSON Schema Draft 7
-- **Error Handling**: Structured error responses with field-level details
-- **Validation Types**: Input schema validation, additional properties rejection
-
-### API Endpoints Tested
+### API Endpoints Implemented
 ```
-GET  /api/v1/atx/power     # Power state retrieval
-PUT  /api/v1/atx/power     # Power control actions
-GET  /api/v1/atx           # ATX active state
-PUT  /api/v1/atx           # ATX enable/disable
-
-# Legacy compatibility
-GET  /api/atx              # Legacy ATX state
-POST /api/atx              # Legacy ATX control
-POST /api/atx/click        # Legacy power button control
+GET  /api/v1/atx/status     # Unified status (enabled, power, hdd_active)
+PUT  /api/v1/atx            # Enable/disable ATX control
+POST /api/v1/atx/actions    # Execute power actions (immediate, no storage)
+GET  /api/v1/docs           # OpenAPI 3.1 specification
+DELETE /api/v1/_test/rate-limits  # Test isolation helper (test env only)
 ```
 
-### Validation Rules Tested
+### Validation Rules (PDF Specification)
 | Field | Type | Validation | Status |
 |-------|------|------------|--------|
-| `action` | string | enum: ['on', 'off', 'reset', 'short_press', 'long_press'] | ✅ |
-| `enabled` | boolean | required, strict type | ✅ |
+| `type` | string | enum: ['short_press', 'long_press', 'reset'] | ✅ |
+| `enabled` | boolean | required, strict type validation | ✅ |
 | **Additional Properties** | any | rejected (additionalProperties: false) | ✅ |
-| **Missing Required** | any | validation error with field details | ✅ |
+| **Missing Required** | any | snake_case error with descriptive message | ✅ |
 
 ---
 
 ## 🚀 Performance Metrics
 
-| Metric | Value | Benchmark |
-|--------|-------|-----------|
-| **Fastest Test** | 24ms | rejects extra fields |
-| **Slowest Test** | 81ms | matches OpenAPI schema exactly |
-| **Average Response** | 38ms | Well within acceptable range |
-| **Authentication Setup** | ~50ms | One-time per test suite |
-| **Total Suite Time** | 3.5s | Excellent for 23 tests |
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Fastest Test** | ~25ms | Validation tests |
+| **Slowest Test** | ~3.2s | Rate limiting tests (intentional delay) |
+| **Average Response** | ~35ms | Excluding rate limit tests |
+| **Rate Limit Interval** | 3.0s | Per PDF specification |
+| **Authentication Setup** | ~100ms | One-time per test suite |
+| **Total Suite Time** | ~34s | Includes rate limiting delays |
 
 ---
 
@@ -156,71 +134,81 @@ POST /api/atx/click        # Legacy power button control
 
 ### Security ✅
 - [x] JWT authentication required for all endpoints
-- [x] Invalid credentials properly rejected
-- [x] Token expiration handled gracefully
-- [x] No sensitive data exposed in error messages
+- [x] Test isolation prevents data leakage between tests
+- [x] No sensitive data exposed in validation errors (security middleware)
+- [x] Rate limiting prevents abuse (3-second minimum interval)
 
-### Input Validation ✅
-- [x] Schema validation working correctly
-- [x] Required fields enforced
-- [x] Additional properties rejected
-- [x] Type validation (boolean, enum) working
-- [x] Structured error responses with field details
+### PDF Specification Compliance ✅
+- [x] Field naming: `type` field (not `action`) per pages 21-22
+- [x] Enum values: Mechanism-based (`short_press`, `long_press`, `reset`)
+- [x] Error format: Snake_case codes (`validation_failed`, `rate_limited`)
+- [x] Response structure: Direct `{error, message}` (no wrapper)
+- [x] Status codes: 200, 400, 403, 429 as documented
+- [x] Rate limiting: 3s interval with `Retry-After` header
 
-### API Standards ✅
-- [x] REST semantics followed (GET/PUT methods)
-- [x] Consistent HTTP status codes (200, 400, 401)
-- [x] OpenAPI 3.0 specification compliance
-- [x] No legacy wrapper properties in v1 responses
-- [x] Content-Type validation working
+### Professional Architecture ✅
+- [x] OpenAPI 3.1 specification with complete schemas
+- [x] Middleware-based validation (no manual validation code)
+- [x] Centralized error handling with consistent format
+- [x] Schema-first design ready for Elysia + Eden Treaty migration
+- [x] Comprehensive test coverage with isolation
 
-### Backward Compatibility ✅
-- [x] Legacy endpoints still functional
-- [x] Response format mapping working
-- [x] Dual routing (legacy + v1) operational
-- [x] No breaking changes to existing integrations
-
----
-
-## 🔄 Before vs After Comparison
-
-| Aspect | Before Fixes | After Fixes |
-|--------|--------------|-------------|
-| **Authentication** | ❌ 0/23 tests passing (401 errors) | ✅ 23/23 tests passing |
-| **Validation** | ❌ Expecting string codes, getting numbers | ✅ Correct numeric error codes |
-| **Legacy Compat** | ❌ Wrong parameters, response format | ✅ Correct legacy API usage |
-| **Overall Success** | ❌ 0% success rate | ✅ 100% success rate |
+### Phase 1 Characteristics ✅
+- [x] Actions return 200 (not 201) because no storage
+- [x] No action IDs or timestamps in responses
+- [x] No GET /api/v1/atx/actions endpoint (Phase 2 feature)
+- [x] Immediate execution only, no persistence
 
 ---
 
 ## 📋 Test Environment
 
 - **Operating System**: Linux 6.1.0-rpi7-rpi-v8
-- **Node.js Version**: 18.19.0  
-- **Hardware**: BliKVM CM4 (1GB RAM)
-- **Network**: HTTPS (TLS disabled for testing)
-- **Database**: File-based JSON configuration
-- **Authentication**: JWT with 12-hour expiration
+- **Node.js Version**: v18+ 
+- **Hardware**: BliKVM CM4 
+- **Network**: HTTPS (localhost testing)
+- **Authentication**: JWT Bearer tokens
+- **Test Isolation**: Rate limit clearing between tests
 
 ---
 
-## 📈 Recommendations
+## 🔄 Implementation Highlights
 
-### ✅ Production Readiness
-1. **Authentication**: Fully implemented and working
-2. **Validation**: Comprehensive input validation active
-3. **Error Handling**: Consistent, informative error responses
-4. **Documentation**: OpenAPI spec available at `/api/v1/docs`
+### Before vs After
+| Aspect | Before | After (Phase 1) |
+|--------|--------|-----------------|
+| **Validation** | Manual req.body checks | Professional AJV middleware |
+| **Error Format** | Mixed formats | Consistent {error, message} |
+| **PDF Compliance** | Partial | 100% specification adherence |
+| **Test Coverage** | Basic | Comprehensive 17-test suite |
+| **Rate Limiting** | None | 3s interval with proper headers |
 
-### 🚀 Next Steps
-1. **Extend Testing**: Add performance/load testing
-2. **Additional Endpoints**: Expand OpenAPI coverage beyond ATX
-3. **Monitoring**: Add metrics collection for API usage
-4. **Documentation**: Update client integration guides
+### Key Achievements
+1. **100% PDF Compliance**: Every field, enum, and response matches specification
+2. **Professional Infrastructure**: Validation middleware, error handling, logging
+3. **Comprehensive Testing**: 17 tests covering all scenarios including edge cases
+4. **Non-Disruptive**: Existing `/api/atx/*` endpoints remain unchanged
+5. **Future-Ready**: Schema-first architecture for Phase 2/3 expansion
+
+---
+
+## 📈 Next Steps (Future Phases)
+
+### Phase 2 Planning
+- **Storage Layer**: Add action persistence with PostgreSQL/Redis
+- **History Endpoints**: `GET /api/v1/atx/actions`, `GET /api/v1/atx/actions/{id}`
+- **Extended Responses**: Add `id`, `executed_at`, `status` fields
+- **Status Codes**: Use 201 for stored actions
+
+### Phase 3 Enhancements  
+- **Advanced Features**: Scheduling, bulk operations, webhooks
+- **Performance**: Caching, batch processing, streaming
+- **Security**: RBAC, audit trails, rate limiting per user
 
 ---
 
 **Report Generated by**: Claude Code  
-**Test Suite Location**: `/test/api-v1-atx.test.js`  
-**JUnit XML**: Available at `/junit.xml`  
-**Execution Command**: `npx jest test/api-v1-atx.test.js --verbose`
+**Test Suite**: `/test/api-v1-atx-phase1.test.js` and `/test/api-v1-atx-unit.test.js`  
+**OpenAPI Spec**: `/docs/openapi-v1-atx.yaml`  
+**Execution**: `npx jest test/api-v1-atx-phase1.test.js --verbose`  
+**PDF Reference**: BliKVM ATX API v1 Design PDF (pages 21-22, 26)

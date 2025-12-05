@@ -33,11 +33,8 @@ export function validateRequestBody(schema) {
       }));
       
       const response = {
-        error: 'Validation failed',
-        message: `Invalid request data. ${errors.length} validation error(s) found.`,
-        details: {
-          errors: errors
-        }
+        error: 'validation_failed',
+        message: `Invalid request data. ${errors.length} validation error(s) found.`
       };
       
       return res.status(400).json(response);
