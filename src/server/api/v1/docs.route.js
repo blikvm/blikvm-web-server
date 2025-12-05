@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Cache spec at module load time
-const specPath = path.join(__dirname, '../../../../docs/openapi-v1.yaml');
+const specPath = path.join(__dirname, '../../../../docs/openapi-v1-atx.yaml');
 let cachedSpec = null;
 
 function getSpec() {

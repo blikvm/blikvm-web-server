@@ -105,7 +105,8 @@ export async function createATXAction(req, res, next) {
 
     // Check if ATX is enabled
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, UTF8));
-    if (!config.atx?.isActive) {
+    const isActive = config.atx?.isActive ?? true;
+    if (!isActive) {
       return res.status(403).json({
         error: 'atx_disabled',
         message: 'ATX control is disabled. Enable via PUT /api/v1/atx.'
