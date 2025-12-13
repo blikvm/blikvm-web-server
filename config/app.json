@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 11,
   "deviceVersion": "BliKVM CM4",
   "log": {
     "console": {
@@ -97,7 +97,8 @@
       "idProduct": "0x0106",
       "manufacturer": "BliKVM",
       "product": "Multifunction USB Device"
-    }
+    },
+    "hidScript": "./lib/hid/gadget.sh"
   },
   "prometheus": {
     "enabled": true,
