@@ -1,0 +1,164 @@
+openapi: 3.1.0
+info:
+  title: BliKVM ATX API
+  version: 1.0.0
+  description: ATX power control for KVM-over-IP
+
+paths:
+  /api/v1/atx/status:
+    get:
+      operationId: getAtxStatus
+      summary: Get ATX hardware status
+      responses:
+        '200':
+          description: ATX status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AtxStatus'
+
+  /api/v1/atx:
+    put:
+      operationId: updateAtxConfig
+      summary: Update ATX configuration
+      description: Enable or disable ATX control
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtxConfigRequest'
+      responses:
+        '200':
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AtxConfigResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/atx/actions:
+    post:
+      operationId: createAtxAction
+      summary: Execute ATX power action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtxActionRequest'
+      responses:
+        '200':
+          description: Action executed (Phase 1)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AtxActionResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '403':
+          description: ATX control disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AtxDisabledError'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+components:
+  schemas:
+    AtxStatus:
+      type: object
+      required: [enabled, power, hdd_active]
+      properties:
+        enabled:
+          type: boolean
+          description: ATX control available
+        power:
+          type: boolean
+          description: Host power state (true = ON)
+        hdd_active:
+          type: boolean
+          description: HDD activity indicator
+
+    AtxConfigRequest:
+      type: object
+      required: ["enabled"]
+      properties:
+        enabled:
+          type: boolean
+          description: Enable or disable ATX control
+
+    AtxConfigResponse:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+          description: Current ATX control state
+
+    AtxActionRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [short_press, long_press, reset]
+          description: |
+            - short_press: 500ms power button (toggles state)
+            - long_press: 5000ms power button (forces off)
+            - reset: Reset button press
+
+    AtxActionResponse:
+      type: object
+      description: Action executed successfully
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [short_press, long_press, reset]
+
+    ValidationError:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          example: "validation_failed"
+        message:
+          type: string
+          example: "Invalid action type 'power_on'. Use: short_press, long_press, reset"
+
+    RateLimitError:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          example: "rate_limited"
+        message:
+          type: string
+          example: "Minimum 3s interval between power commands. Retry in 2s"
+
+    AtxDisabledError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "atx_disabled"
+        message:
+          type: string
+          example: "ATX control is disabled. Enable via PUT /api/v1/atx."
